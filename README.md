@@ -5,13 +5,14 @@
 1. [Getting started](#getting_stated)
 2. [Introduction](#introduction)
 3. [Installation](#installation)
-    - Building xRead from source files
-    - Downloading Pre-built binary executable file
+    - [Building xRead from source files](#build_source)
+    - [Downloading Pre-built binary executable file](#build_binary)
 4. [General usage](#general_usage)
-    - Input
-    - Output
-    - Commands and options
-    - User cases
+    - [Input](#input)
+    - [Output](#output)
+    - [User cases](#user_cases)
+    - [Commands and options](#commands_and_options)
+5. [Contact](#contact)
 
 ## <a name="getting_stated"></a>Getting started
 
@@ -36,18 +37,19 @@ xRead is suited to handle large genomes/datasets produced by ONT and PacBio plat
 For more information, please refer to our paper published in xxx.
 
 ## <a name="installation"></a>Installation
-### Building xRead from source files
+### <a name="build_source"></a>Building xRead from source files
 You can build xRead from source files. The source code of xRead is written in C, and has been tested on 64-bit Linux. The source code can be downloaded from the latest release or git clone command. Please make sure you have gcc (>=6.4.0) installed before compiling.
 ```
 wget https://github.com/tcKong47/xRead/releases/download/v1.4.1/xRead-v1.0.0.tar.gz
 tar -zxvf xRead-v1.0.0.tar.gz
 cd xRead-v1.0.0; make
-
+```
+```
 git clone --recursive https://github.com/tcKong47/xRead.git
 cd xRead; make
 ```
 
-### Downloading Pre-built binary executable file
+### <a name="build_binary"></a>Downloading Pre-built binary executable file
 Or you can download the pre-built binary file if you meet compiling issues.
 ```
 wget https://github.com/tcKong47/xRead/releases/download/v1.0.0/xRead-v1.0.0_x64-linux.tar.gz
@@ -55,12 +57,70 @@ tar -zxvf xRead-v1.0.0_x64-linux.tar.gz
 ```
 
 ## <a name="general_usage"></a>General usage
-### Input
-xRead works with FASTA, FASTQ, gzip'd FASTA(.fa.gz) and gzip'd FASTQ(.fq.gz) formats. The input file is expected to contains all sequences of a single sample of a specific organism to perform the incremental overlapping graph construction.
+### <a name="input"></a>Input
+xRead works with FASTA, FASTQ, gzip'd FASTA (.fa.gz), and gzip'd FASTQ (.fq.gz) formats. The input file is expected to contains all sequences of a single sample of a specific organism to perform the incremental overlap graph construction.
 
-### Output
-xRead generates a collection of overlaps between input reads and outputs them in the PAF format. For more information about PAF format, please refer to PAF: a Pairwise mApping Format(https://github.com/lh3/miniasm/blob/master/PAF.md).
+xRead also works with PAF and gzip'd (.paf.gz) formats and provides an additional function to expand the initial core graphs to comprehensive graphs based on the further analysis of transitive relationships among the overlaps. If the option *-N --trans-file* is enabled, xRead skips the overlapping process and takes the PAF file as input to directly performed the expanding iterations, which the number of iterations is defined by option *-R --trans-iter*.
 
-### Commands and options
+### <a name="output"></a>Output
+xRead generates a collection of overlaps between input reads/overlap relationships and outputs them in the PAF format. For more information about PAF format, please refer to PAF: a Pairwise mApping Format(https://github.com/lh3/miniasm/blob/master/PAF.md).
 
-### User cases
+### <a name="user_cases"></a>User cases
+To construct overlapping graph and output in PAF format.
+```
+xRead sequence.fa/fq -f output_path/output_filename_prefix
+```
+
+To construct overlapping graph and expand it to comprehensive overalpping graph via transitive searching of -R iterations.
+```
+xRead sequence.fa/fq -f output_path/output_filename_prefix -R 3
+```
+
+To expand overlapping graph to comprehensive overalpping graph.
+```
+xRead overlaps.paf -NR 3
+```
+
+### <a name="commands_and_options"></a>Commands and options
+```
+xRead <reads.fa/fq>/<overlaps.paf> [options]
+
+    <reads.fq/fa>           The input reads in fasta or fastq format, necessary if -N is not enabled by users.
+    <overlaps.paf>          The input overlapping graph in paf format, necessary if -N is enabled to skip the overlapping discovery step.
+```
+```
+Program options:
+    -h --help               Print help menu.
+    -f --output-file        The path and name prefix of output file.[STRING]
+    -M --memory             Maximum allowed memory.[UNSIGNED INT]
+    -t --thread-n           Number of used threads.[UNSIGNED INT]
+    -p --read-type          Specify the type of reads to calculating the warting length for alignment skeleton.[UNSIGNED INT]
+                                [1]: For eads with error rates ~12%.
+                                [2]: For reads with error rates ~1%.
+```
+```
+Algorithm options:
+    -x --x-longest-read     The longest x% reads indexed for the first iteration.[FLOAT]
+    -X --x-random-read      The longest X% reads indexed for the second and later iteration.[FLOAT]
+    -k --k-mer              The length of k-mer for sequences sketching.[UNSIGNED INT]
+    -w --window-size        Window size for sequences sketching.[UNSIGNED INT]
+    -l --l-mer              The length of l-mer of the auxiliary index hash table.[UNSIGNED INT]
+    -r --repeat-n           The proportion for filtering the most repetitive minimizer hits.[UNSIGNED INT]
+    -e --search-step        The number of search step of SDP graph construction.[UNSIGNED INT]
+    
+    -n --top-n              The number of overlaps each read retained for each iteration.[UNSIGNED INT]
+    -b --matching-bases     Minimum required matching bases for a single overlap between two reads.[UNSIGNED INT]
+    -m --min-ove            Minimum required length of overlap.[UNSIGNED INT]
+    -a --max-hang           Maximum allowed total length of left and right overhangs.[UNSIGNED INT]
+    
+    -L --split-len          The length of split blocks for read coverage estimation.[UNSIGNED INT]
+    -S --read-part-size     Estimating the average coverage of every S consecutive blocks to mark the less-covered read portions.[UNSIGNED INT]
+    -c --cov-ratio          The proportion of less-covered reads for next iteration.[FLOAT]
+    -I --iter-times         Maximum allowed number of iterations.[UNSIGNED INT]
+    
+    -R --trans-iter         Enabling the calculating of transitive overlaps for R iterations.[UNSIGNED INT]
+    -N --trans-only         Skipping the overlapping discovery, only perfomred R transitive iterations to generate comprehensive graph.
+```
+
+## <a name="contact"></a>Contact
+Please post on [gitHub issues](https://github.com/tcKong47/xRead/issue) or contact Tangchao Kong 21B903020@stu.hit.edu.cn for questioning, advising, and reporting bugs.
