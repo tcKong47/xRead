@@ -28,11 +28,9 @@ make
 ```
 
 ## <a name="introduction"></a>Introduction
-xRead is an incremental overlapping graph construction approach that is able to achieve high scalability, performance, and yields simultaneously. Guided by a novel read-depth-based objective function, xRead iteratively builds and refines the overlapping graph with heuristic read indexing and lightweight alignment skeletons. 
+xRead is an incremental overlapping graph construction approach that is able to achieve high scalability, performance, and yields simultaneously. Guided by a novel read-depth-based objective function, xRead iteratively builds and refines the overlapping graph with heuristic read indexing and lightweight alignment skeletons and output the core overlap information in PAF format.
 
-xRead has outstanding scalability for memory usage which enables to build the overlapping graphs of high-coverage sequencing datasets of very large genomes with low and tunable RAM space cost, e.g., building an overlapping graph of 32X PacBio sequencing dataset (1.9 Terabyte) of Axolotl genome with 64GB RAM. Moreover, xRead has high speed for various genome sizes from E. coli to human genomes, and can enable the production of highly accurate read overlaps without loss of sensitivity, which helps to construct high-quality overlapping graphs. 
-
-xRead is suited to handle large genomes/datasets produced by ONT and PacBio platforms with only small or medium servers/clusters and be cost-effective large-scale de novo assembly tasks having numbers of genomes to be assembled. 
+xRead has outstanding scalability for memory usage which enables to build the overlapping graphs of high-coverage sequencing datasets of very large genomes with low and tunable RAM space cost, e.g., building an overlapping graph of 32X PacBio sequencing dataset (1.9 Terabyte) of Axolotl genome with 64GB RAM. Moreover, xRead has high speed for various genome sizes from E. coli to human genomes, and can enable the production of highly accurate read overlaps without loss of sensitivity, which helps to construct high-quality overlapping graphs. xRead is suited to handle large genomes/datasets produced by ONT and PacBio platforms with only small or medium servers/clusters and be cost-effective large-scale de novo assembly tasks having numbers of genomes to be assembled. 
 
 ## <a name="installation"></a>Installation
 ### <a name="build_source"></a>Building xRead from source files
@@ -90,19 +88,19 @@ Usage: xRead <reads.fa/fq>/<overlaps.paf> [options]
 
 ***Program options***
 | Short option | Long option | Description | Default |
-| :----------- | :---------- | :---------- | :-----------: |
+| :----------: | :---------- | :---------- | :-----------: |
 | -h           | --help | Print help menu. | NULL |
 | -f           | --output-file | The path and name prefix of output file. | NULL |
 | -M           | --memory | Maximum allowed memory. | 16 |
 | -t           | --thread-n | Number of used threads. | 8 |
-| -p           | --read-type      | Specify the type of reads to calculating the warting length for alignment skeleton. *1* For reads with high error rates ~15%. *2* For reads with low error rates ~1%. | 1 |
+| -p           | --read-type      | Specify the type of reads to calculating the warting length for alignment skeleton.<br> *1*: For reads with high error rates ~15%.<br> *2*: For reads with low error rates ~1%. | 1 |
 
 ***Algorithm options***
 | Short option | Long option | Description | Default |
-| :----------- | :---------- | :---------- | :-----------: |
-| -x | --x-longest-read   | The longest x% reads indexed for the first iteration. | 3.0 |
-| -X | --x-random-read   | The longest X% reads indexed for the second and later iteration. | 10.0 |
-| -k | --k-mer   | The length of k-mer for sequences sketching. | 15 |
+| :----------: | :---------- | :---------- | :-----------: |
+| -x | --x-longest-read | The longest x% reads indexed for the first iteration. | 3.0 |
+| -X | --x-random-read | The longest X% reads indexed for the second and later iteration. | 10.0 |
+| -k | --k-mer | The length of k-mer for sequences sketching. | 15 |
 | -w | --window-size | Window size for sequences sketching. | 5 |
 | -l | --l-mer | The length of l-mer of the auxiliary index hash table. | 11 |
 | -r | --repeat-n | The proportion for filtering the most repetitive minimizer hits. | 0.005 |
@@ -112,19 +110,33 @@ Usage: xRead <reads.fa/fq>/<overlaps.paf> [options]
 | -m | --min-ove | Minimum required length of overlap. | 500 |
 | -a | --max-hang | Maximum allowed total length of left and right overhangs. | 2000 |
 | -L | --split-len | The length of split blocks for read coverage estimation. | 1000 |
-| -S | --read-part-size |  Estimating the average coverage of every S consecutive blocks to mark the less-covered read portions. | 3 |
+| -S | --read-part-size |  Estimating the average coverage of every S consecutive blocks to mark the <br> less-covered read portions. | 3 |
 | -c | --cov-ratio | The proportion of less-covered reads for next iteration. | 0.5 |
 | -I | --iter-times | Maximum allowed number of iterations. | 8 |
 | -R | --trans-iter | Enabling the calculating of transitive overlaps for R iterations. | 0 |
-| -N | --trans-only | Skipping the overlapping discovery, only perfomred R transitive iterations to generate comprehensive graph. | NULL |
+| -N | --trans-only | Skipping the overlapping discovery, only perfomred R transitive iterations to <br> generate comprehensive graph. | NULL |
 
-**Recommended options**
+***Recommended options***
+
 For ONT and PacBio CLR data:
 ```
+-k/--k-mer       15
+-w/--window-size  5
 ```
 For PacBio CCS (HiFi) and ONT data of super high accuracy mode:
 ```
+-k/--k-mer       19
+-w/--window-size 40
 ```
-
+For high coverage dataset:
+```
+--x-longest-read  3
+--x-random-read  10
+```
+For low coverage dataset:
+```
+--x-longest-read  5
+--x-random-read  10
+```
 ## <a name="contact"></a>Contact
 Please post on [github issues](https://github.com/tcKong47/xRead/issue) or contact Tangchao Kong 21B903020@stu.hit.edu.cn for questioning, advising, and reporting bugs.
