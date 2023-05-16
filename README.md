@@ -93,7 +93,7 @@ Usage: xRead <reads.fa/fq>/<overlaps.paf> [options]
 | -f           | --output-file | The path and name prefix of output file. | NULL |
 | -M           | --memory | Maximum allowed memory. | 16 |
 | -t           | --thread-n | Number of used threads. | 8 |
-| -p           | --read-type      | Specify the type of reads to calculating the warting length for alignment skeleton.<br> *1*: For reads with high error rates ~15%.<br> *2*: For reads with low error rates ~1%. | 1 |
+| -p           | --read-type | Specify the type of reads to calculating the warting length for <br> alignment skeleton.<br> *1*: For reads with high error rates ~15%.<br> *2*: For reads with low error rates ~1%. | 1 |
 
 ***Algorithm options***
 | Short option | Long option | Description | Default |
@@ -128,15 +128,6 @@ For PacBio CCS (HiFi) and ONT data of super high accuracy mode:
 -k/--k-mer       19
 -w/--window-size 40
 ```
-For high coverage dataset:
-```
---x-longest-read  3
---x-random-read  10
-```
-For low coverage dataset:
-```
---x-longest-read  5
---x-random-read  10
-```
+
 ## <a name="contact"></a>Contact
 Please post on [github issues](https://github.com/tcKong47/xRead/issue) or contact Tangchao Kong 21B903020@stu.hit.edu.cn for questioning, advising, and reporting bugs.
