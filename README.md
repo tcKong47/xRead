@@ -93,7 +93,7 @@ Usage: xRead <reads.fa/fq>/<overlaps.paf> [options]
 | -f           | --output-file | The path and name prefix of output file. | NULL |
 | -M           | --memory | Maximum allowed memory. | 16 |
 | -t           | --thread-n | Number of used threads. | 8 |
-| -p           | --read-type | Specify the type of reads to calculating the warting length for <br> alignment skeleton.<br> *1*: For reads with high error rates ~15%.<br> *2*: For reads with low error rates ~1%. | 1 |
+| -p           | --read-type | Specify the type of reads to calculating the warting length for alignment <br> skeleton.<br> *1*: For reads with high error rates ~15%.<br> *2*: For reads with low error rates ~1%. | 1 |
 
 ***Algorithm options***
 | Short option | Long option | Description | Default |
