@@ -124,7 +124,7 @@ static uint32_t filter_rep_mi(mini_idx_t *mi)
 
 	rep_idx = rep_n * r_n;
 	rep_tmp = rep_kmer[rep_idx];
-	fprintf(stderr, "[Index: %.3fs, %.3fGB] %d distinct k-mer, ignore k-mer appearing times > %d...\n", realtime() - realtime0, peak_memory() / 1024.0 / 1024.0, rep_n, rep_tmp);
+	fprintf(stderr, "[Indexing: %.3fs, %.3fGB] %d distinct k-mer, ignore k-mer appearing times > %d...\n", realtime() - realtime0, peak_memory() / 1024.0 / 1024.0, rep_n, rep_tmp);
 
 	if (rep_kmer != NULL) {free(rep_kmer); rep_kmer = NULL;}
 
@@ -226,7 +226,7 @@ static void *index_pipeline(void *shared, int step, void *in)
 		}
 		if (seq_mi != NULL) {free(seq_mi); seq_mi = NULL;}
 		if (s->read_info != NULL) {free(s->read_info); s->read_info = NULL;}
-		fprintf(stderr, "[Index: %.3fs, %.3fGB] Indexed %d query read...\n", realtime() - realtime0, peak_memory() / 1024.0 / 1024.0, s->n_seq);
+		fprintf(stderr, "[Indexing: %.3fs, %.3fGB] Indexed %d query read...\n", realtime() - realtime0, peak_memory() / 1024.0 / 1024.0, s->n_seq);
 		if (s != NULL) {free(s); s = NULL;}
 	}
 
@@ -238,10 +238,8 @@ mini_idx_t *indexing_input_read(bseq_file_t *fp, uint32_t *rep_n, uint32_t *n_st
 	int i;
 	pipeline_t pl;
 
-	// pl.batch_size_base = 1000000000;//1Gbp
 	pl.batch_size_base = batch_size_base; // 1Gbp, 5GB memory
-	pl.index_batch_size = pl.batch_size_base / (thread_n > 8 ? thread_n : 8);
-	// pl.index_batch_size = pl.batch_size_base;
+	pl.index_batch_size = pl.batch_size_base / 2;
 
 	pl.fp = fp;
 	pl.n_base = 0;
@@ -320,7 +318,7 @@ mini_idx_t *indexing_input_read(bseq_file_t *fp, uint32_t *rep_n, uint32_t *n_st
 		return pl.mi;
 	}
 	pl.mi->mi_step = (double)pl.n_base / pl.mi->mm.mi_n;
-	fprintf(stderr, "[Index: %.3fs, %.3fGB] Total %d indexed reads, %ld minimizers(%ld); step: %f; total memory %.3f GB; sorting minimizers...\n", realtime() - realtime0, peak_memory() / 1024.0 / 1024.0, pl.n_processed, pl.mi->mm.mi_n, pl.mi->mm.mi_m, pl.mi->mi_step, pl.mi->mm.mi_n * sizeof(MINIMIZER_t) / 1024.0 / 1024.0 / 1024.0);
+	fprintf(stderr, "[Indexing: %.3fs, %.3fGB] Total %d indexed reads, %ld minimizers(%ld); step: %f; total memory %.3f GB; sorting minimizers...\n", realtime() - realtime0, peak_memory() / 1024.0 / 1024.0, pl.n_processed, pl.mi->mm.mi_n, pl.mi->mm.mi_m, pl.mi->mi_step, pl.mi->mm.mi_n * sizeof(MINIMIZER_t) / 1024.0 / 1024.0 / 1024.0);
 
 	pl.mi->mi_count[0] = 0;
 	for (i = 1; i < pl.mi->bucket_num; ++i)

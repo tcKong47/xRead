@@ -52,7 +52,7 @@ static void init_map_param(param_map *opt)
 	opt->part_size = 3;
 	opt->X_read = 10;
 	opt->split_len = 1000;
-	opt->iter = 10;
+	opt->iter = 8;
 	
 	opt->trans_iter = 0;
 	opt->trans_file = 0;
@@ -99,12 +99,12 @@ static int help_usage(param_map *opt)
 	fprintf(stderr, "    -c --cov-ratio             [FLOAT]  The proportion of less-covered reads for next iteration. [%.3f]\n", opt->cov_ratio);
 	fprintf(stderr, "    -I --iter-times            [INT]    Maximum allowed number of iterations. [%d]\n", opt->iter);
 
-	fprintf(stderr, "    -R --trans-iter            [INT]    Enabling the calculating of transitive overlaps for R iterations. [%d]\n", opt->iter);
+	fprintf(stderr, "    -R --trans-iter            [INT]    Enabling the calculating of transitive overlaps for R iterations. [%d]\n", opt->trans_iter);
 	fprintf(stderr, "    -N --trans-file            	     Skipping the overlapping discovery, only perfomred R transitive iterations to generate comprehensive graph.\n");
 	
 	fprintf(stderr, "\nProgram:	xRead\n");
 	fprintf(stderr, "Usage:		xRead <overlaps.paf> -N [options]\n");
-	fprintf(stderr, "    -R --trans-iter            [INT]    Enabling the calculating of transitive overlaps for R iterations. [%d]\n", opt->iter);
+	fprintf(stderr, "    -R --trans-iter            [INT]    Enabling the calculating of transitive overlaps for R iterations. [%d]\n", opt->trans_iter);
 	
 	return 1;
 }
@@ -297,7 +297,7 @@ int main(int argc, char *argv[])
 	opt->batch_size = opt->memory / (19 + 2.0/opt->thread_n) * 1024 *1024 * 1024;
 	fprintf(stderr, "[Initial] Configuring memory limitaion as %dGB, and batch size as %ld\n", opt->memory, opt->batch_size);
 
-	if (opt->batch_size < 100000000 || opt->batch_size > 5000000000)
+	if (opt->batch_size < 100000000 || opt->batch_size > 4000000000)
 	{
 		fprintf(stderr, "Input error: batch size cannot be less than 100000000 or more than 4000000000\n");
 		exit(1);
