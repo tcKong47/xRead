@@ -28,9 +28,9 @@ make
 ```
 
 ## <a name="introduction"></a>Introduction
-xRead is an incremental overlapping graph construction approach that is able to achieve high scalability, performance, and yields simultaneously. Guided by a novel read-depth-based objective function, xRead iteratively builds and refines the overlapping graph with heuristic read indexing and lightweight alignment skeletons and output the core overlap information in PAF format.
+Long-read sequencing provides the reads with superior repeat-spanning ability which enables the solution of complex repetitive regions and greatly helps to achieve high-quality assemblies. However, the time cost and the memory requirement of constructing read overlapping graph are still high due to the computation-intensity, especially on many large genomes (such as *A. mexicanum*, *E. superba*). Long-read assembly approaches with higher scalability and speed are in wide demand to deal with the ever-increasing sizes and numbers of de novo sequencing genomes. Herein, we proposed xRead, an incremental overlapping graph construction approach that is able to achieve high scalability, performance and yields simultaneously. Guided by a novel read-coverage-based objective function, xRead iteratively builds and refines the overlapping graph with heuristic read indexing and lightweight alignment skeletons and output the core overlap information in PAF format.
 
-xRead has outstanding scalability for memory usage which enables to build the overlapping graphs of high-coverage sequencing datasets of very large genomes with low and tunable RAM space cost, e.g., building an overlapping graph of 32X PacBio sequencing dataset (1.9 Terabyte) of Axolotl genome with 64GB RAM. Moreover, xRead has high speed for various genome sizes from E. coli to human genomes, and can enable the production of highly accurate read overlaps without loss of sensitivity, which helps to construct high-quality overlapping graphs. xRead is suited to handle large genomes/datasets produced by ONT and PacBio platforms with only small or medium servers/clusters and be cost-effective large-scale de novo assembly tasks having numbers of genomes to be assembled. 
+The benchmarks on simulated and real datasets suggest that xRead is able to well-handle various-sized genomes and long-read datasets with controllable RAM usage and high speed. It is also able to achieve high precision without loss of sensitivity as well, which helps to construct high-quality overlapping graphs. The benchmark results of xRead on various simulated and real sequencing datasets are below:
 
 ## <a name="installation"></a>Installation
 ### <a name="build_source"></a>Building xRead from source files
@@ -90,10 +90,9 @@ Usage: xRead <reads.fa/fq>/<overlaps.paf> [options]
 | Short option | Long option | Description | Default |
 | :----------: | :---------- | :---------- | :-----------: |
 | -h           | --help | Print help menu. | NULL |
-| -f           | --output-file | The path and name prefix of output file. | NULL |
+| -f           | --output-file | The path and name prefix of output file. <br> If the option is not specified, it will be output from the stdout. | NULL |
 | -M           | --memory | Maximum allowed memory. | 16 |
 | -t           | --thread-n | Number of used threads. | 8 |
-| -p           | --read-type | Specify the type of reads to calculating the waiting length for alignment skeleton.<br> *1*: For reads with high error rates ~15%.<br> *2*: For reads with low error rates ~1%. | 1 |
 
 ***Algorithm options***
 | Short option | Long option | Description | Default |
@@ -104,17 +103,18 @@ Usage: xRead <reads.fa/fq>/<overlaps.paf> [options]
 | -w | --window-size | Window size for sequences sketching. | 5 |
 | -l | --l-mer | The length of l-mer of the auxiliary index hash table. | 11 |
 | -r | --repeat-n | The proportion for filtering the most repetitive minimizer hits. | 0.005 |
+| -p | --read-type | Specify the type of reads to calculating the length of gaps for alignment skeleton.<br> *1*: For reads with high error rates ~15%.<br> *2*: For reads with low error rates ~1%. | 1 |
 | -e | --search-step | The number of search step of SDP graph construction. | 10 |
 | -n | --top-n | The number of overlaps each read retained for each iteration. | 2 |
 | -b | --matching-bases | Minimum required matching bases for a single overlap between two reads. | 100 |
 | -m | --min-ove | Minimum required length of overlap. | 500 |
 | -a | --max-hang | Maximum allowed total length of left and right overhangs. | 2000 |
 | -L | --split-len | The length of split blocks for read coverage estimation. | 1000 |
-| -S | --read-part-size |  Estimating the average coverage of every S consecutive blocks to mark the <br> less-covered read portions. | 3 |
+| -S | --read-part-size |  Estimating the average coverage of every S consecutive blocks to mark the less-covered read portions. | 3 |
 | -c | --cov-ratio | The proportion of less-covered reads for next iteration. | 0.5 |
 | -I | --iter-times | Maximum allowed number of iterations. | 8 |
 | -R | --trans-iter | Enabling the calculating of transitive overlaps for R iterations. | 0 |
-| -N | --trans-only | Skipping the overlapping discovery, only perfomred R transitive iterations to <br> generate comprehensive graph. | NULL |
+| -N | --trans-only | Skipping the overlapping discovery, only perfomred R transitive iterations to generate comprehensive graph. | NULL |
 
 ***Recommended options***
 
@@ -122,11 +122,13 @@ For ONT and PacBio CLR data:
 ```
 -k/--k-mer       15
 -w/--window-size  5
+-p/--read-type    1
 ```
 For PacBio CCS (HiFi) and ONT data of super high accuracy mode:
 ```
 -k/--k-mer       19
 -w/--window-size 40
+-p/--read-type    2
 ```
 
 ## <a name="contact"></a>Contact
