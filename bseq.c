@@ -59,7 +59,6 @@ len_t *bseq_read_l(bseq_file_t *fp, uint64_t batch, uint32_t *_n)
         }
         len[seqii].rlen = seq->seq.l;
         len[seqii].nlen = seq->name.l + seq->comment.l + seq->qual.l + seq->skip_base;
-        // printf("%ld %ld %ld %ld, skip %d\n",seq->name.l,seq->comment.l,seq->seq.l,seq->qual.l,seq->skip_base);
     }
     *_n = seqii;
     return len;
@@ -123,8 +122,6 @@ int bseq_rewrite_read(bseq_file_t *fp, FILE *fp_un_ove, uint32_t *symn, file_idx
         {
             if (seqi >= file_idx->n) break;
             bseq_seek_cur(fp, file_idx->offs[seqi]);
-            // kr1 = kseq_read(seq1);
-            // if (kr1 <= 0) break;
         }
     }
     return read_num;

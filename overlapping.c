@@ -16,7 +16,6 @@
 #include "bit_operation.h"
 
 #define INTER_RESULT
-// #define LOAD_INTER_RESULT
 
 // shared data of all threads
 typedef struct
@@ -132,7 +131,6 @@ static void *sort_read_length_pipeline(void *shared, int step, void *in)
 		p->batch_i += 1;
 		if (s->len != NULL) {free(s->len); s->len = NULL;}
 		if (s != NULL) {free(s); s = NULL;}
-		// fprintf(stderr, "[2%s: %.3fs, %.3fGBG]\tReal time:%.3f sec\tCPU:%.3f sec\tMemory peak:%.3f GB\n", __func__, realtime() - realtime0, peak_memory() / 1024.0 / 1024.0, realtime() - realtime0, peak_memory() / 1024.0 / 1024.0);
 	}
 	return 0;
 }
@@ -207,7 +205,6 @@ static uint32_t merge_colinear_mr(MR_t *vertex_mr, uint32_t *v_n)
 			int diff = (int)(vertex_mr[j].qs - vertex_mr[j - 1].qe - 1);
 			int diff_q = (int)(vertex_mr[j].qs - vertex_mr[j - 1].qs);
 			int diff_tt = vertex_mr[j].tstr == vertex_mr[j].qstr ? (int)(vertex_mr[j].ts - vertex_mr[j - 1].ts) : (int)(vertex_mr[j - 1].te - vertex_mr[j].te);
-			// printf("s1 %d,%d %d, diff %d %d, %d, %d, %d\n",s1,j-1,j,diff,waitingLen,diff_q,diff_tt,abs(diff_tt - diff_q));
 			if (diff > waitingLen)
 				break;
 			if (abs(diff_tt - diff_q) < Eindel)
@@ -231,7 +228,6 @@ static uint32_t merge_colinear_mr(MR_t *vertex_mr, uint32_t *v_n)
 		tid_tmp = vertex_mr[j].t_id;
 		tstr_tmp = vertex_mr[j].tstr;
 		qstr_tmp = vertex_mr[j].qstr;
-		// if (su_i >= v_m) {printf("[%s] use unlegal memory, %d-%d, something wrong with it...", __func__, su_i, v_m); exit(0);}
 	}
 	(*v_n) = su_i;
 	return su_i;
@@ -239,7 +235,7 @@ static uint32_t merge_colinear_mr(MR_t *vertex_mr, uint32_t *v_n)
 
 static uint32_t finding_hits(void *shared_data, int64_t qidx, uint32_t pid, mini_t *seq_mi)
 {
-	int result;
+	int result, k_i;
 	step_query_t *data = (step_query_t *)shared_data;
 	READ_t *query = &data->read_info[qidx];
 	const pipeline_t *p = data->p;
@@ -248,18 +244,13 @@ static uint32_t finding_hits(void *shared_data, int64_t qidx, uint32_t pid, mini
 	uint32_t i, ii, hits_num = 0;
 	uint64_t range[2] = {UINT64_MAX, UINT64_MAX};
 	uint32_t pos_q, pos_tt, strand_mask = 1ULL, pos_mask = (1ULL << 32) - 1;
-	uint32_t su_i = 0, j, tid_tmp, cov_tmp;
-	// uint32_t s1, e1, Eindel = 20, tstr_tmp, qstr_tmp;
-	uint32_t rid;
-	int k_i;
+	uint32_t rid, su_i = 0, j, tid_tmp, cov_tmp;
 
 	assert(query->read_length <= seq_mi->mi_m);
 	seq_mi->mi_n = sketching_core(&data->read_info[qidx], qidx, seq_mi->mi_v, mi->w, mi->k);
-	if (seq_mi->mi_n >= seq_mi->mi_m) printf("[%s] use unlegal memory, %ld-%ld, something wrong with it...", __func__, seq_mi->mi_n, seq_mi->mi_m);
 
 	for (i = 0; i < seq_mi->mi_n; ++i)
 	{
-		// rep_mini_m++;
 		result = binary_search(seq_mi->mi_v[i], p->mi->k, p->mi->l, range, mi);
 		if (result != -1)
 		{
@@ -283,7 +274,6 @@ static uint32_t finding_hits(void *shared_data, int64_t qidx, uint32_t pid, mini
 								fprintf(stderr, "[%s] calloc %ldGB data->buf[pid]->vertex_mr memory error!\n", __func__, (*v_m) * sizeof(MR_t) / 1024 / 1024 / 1024);
 								exit(1);
 							}
-							fprintf(stderr, "[%s] will not use these code, something wrong with it...",__func__);
 						}
 						data->buf[pid]->vertex_mr[v_n].qs = pos_q + 1 - k;
 						data->buf[pid]->vertex_mr[v_n].qe = pos_q;
@@ -299,7 +289,6 @@ static uint32_t finding_hits(void *shared_data, int64_t qidx, uint32_t pid, mini
 		}
 	}
 	
-	// if ((double)rep_mini_n / seq_mi->mi_n > 0.8) data->buf[pid]->is_ove[qidx] = 1;
 	data->buf[pid]->v_n = v_n;
 	if (v_n == 0)	return v_n;
 
@@ -324,10 +313,8 @@ static uint32_t finding_hits(void *shared_data, int64_t qidx, uint32_t pid, mini
 			}
 			else
 			{
-				// printf("%d %d %d %d\n",count,cov_tmp,tid_tmp,j);
 				for (k_i = count; k_i > 0; k_i--)
 				{
-					// printf("%d %d %d %d\n", su_ii, j, k_i, j-k_i);
 					data->buf[pid]->vertex_mr[su_ii++] = data->buf[pid]->vertex_mr[j - k_i];
 				}
 				count = 1;
@@ -340,7 +327,6 @@ static uint32_t finding_hits(void *shared_data, int64_t qidx, uint32_t pid, mini
 			cov_tmp += data->buf[pid]->vertex_mr[j].cov;
 			count++;
 		}
-		if (su_ii >= data->buf[pid]->v_m) printf("[%s] use unlegal memory, %d-%d, something wrong with it...", __func__, su_ii, data->buf[pid]->v_m);
 	}
 
 	// the last one
@@ -351,8 +337,6 @@ static uint32_t finding_hits(void *shared_data, int64_t qidx, uint32_t pid, mini
 			data->buf[pid]->vertex_mr[su_ii++] = data->buf[pid]->vertex_mr[j - k_i];
 		}
 	}
-
-	if (su_ii >= data->buf[pid]->v_m) printf("[%s] use unlegal memory, %d-%d, something wrong with it...", __func__, su_ii, data->buf[pid]->v_m);
 	data->buf[pid]->v_n = su_ii;
 
 	// detect repetitive regions
@@ -390,27 +374,7 @@ static uint32_t finding_hits(void *shared_data, int64_t qidx, uint32_t pid, mini
 	// the last one
 	if ((double)rep_mini_n / rep_mini_m > 0.8) {data->buf[pid]->is_ove[qidx] = 1;}
 
-	// if (query->rid == 9184)
-	// {
-	// 	printf("read %d\t\n", query->rid);
-	// 	int vi;
-	// 	printf("qid\thid\tcov\tqstrand\tqs\tqe\ttid\ttstrand\tts\tte\tlen\n");
-	// 	for (vi = 0; vi < su_ii; ++vi)
-	// 	{
-	// 		// if (data->buf[pid]->vertex_mr[vi].t_id == 92)
-	// 		printf("%ld\t%d\t%d\t%d\t%ld\t%ld\t%d\t%d\t%ld\t%ld\n", qidx, vi, data->buf[pid]->vertex_mr[vi].cov, data->buf[pid]->vertex_mr[vi].qstr, data->buf[pid]->vertex_mr[vi].qs, data->buf[pid]->vertex_mr[vi].qe, data->buf[pid]->vertex_mr[vi].t_id, data->buf[pid]->vertex_mr[vi].tstr, data->buf[pid]->vertex_mr[vi].ts, data->buf[pid]->vertex_mr[vi].te);
-	// 	}
-	// 	printf("\n");
-	// }
-
 	return v_n;
-}
-
-static void print_single_read_overlap(OVE_t ove)
-{
-	printf("qid %d\tql %d, tid %d tl %d\n", ove.qid, ove.ql, ove.tid, ove.tl);
-	printf("qs qe %d %d; ts te %d %d\n", ove.qs , ove.qe, ove.ts, ove.te);
-	printf("rev %d\t mbp %d\t mln %d\t score %.6f\n", ove.rev, ove.mbp, ove.mln, ove.score);
 }
 
 static int get_overlap_info(step_query_t *data, thread_buf_t *buf, uint32_t q_idx, uint32_t pid, uint32_t max_index_n, uint32_t *max_index, PATH_t *dist_path, mini_t *seq_mi)
@@ -429,7 +393,6 @@ static int get_overlap_info(step_query_t *data, thread_buf_t *buf, uint32_t q_id
 	uint32_t left_overhang = 0, right_overhang = 0, overhang_tr = 0, overhang = 0;
 	MR_t *vertex_mr = buf->vertex_mr;
 	int mln_ratio, mln_th;
-	// uint32_t tmp_tpos;
 
 	if (max_index_n == 0) return 0;
 	ove_cl_tmp = (OVE_t*)calloc(max_index_n,sizeof(OVE_t));
@@ -459,7 +422,6 @@ static int get_overlap_info(step_query_t *data, thread_buf_t *buf, uint32_t q_id
 			ove_tmp.te = vertex_mr[j].te;
 		else
 			ove_tmp.ts = vertex_mr[j].ts;
-		// ove_tmp.te = ove_tmp.rev == 0 ? vertex_mr[j].te : vertex_mr[j].ts;
 
 		while(j != -1)
 		{
@@ -469,11 +431,8 @@ static int get_overlap_info(step_query_t *data, thread_buf_t *buf, uint32_t q_id
 				ove_tmp.ts = vertex_mr[j].ts;
 			else
 				ove_tmp.te = vertex_mr[j].te;
-			// ove_tmp.ts = ove_tmp.rev == 0 ? vertex_mr[j].ts : vertex_mr[j].te;
 			matching_bases += vertex_mr[j].cov;
-			// printf("path %d\t%d\t%d\t%d\t%ld\t%ld\t%d\t%d\t%ld\t%ld\n", query->rid, j, vertex_mr[j].cov, vertex_mr[j].qstr, vertex_mr[j].qs, vertex_mr[j].qe, vertex_mr[j].t_id, vertex_mr[j].tstr, vertex_mr[j].ts, vertex_mr[j].te);
 			j = (int32_t)dist_path[j].pre_node;
-			if (j >= (int32_t)buf->v_n) printf("[%s] 1 use unlegal memory, %d-%d, something wrong with it...", __func__, j, buf->v_n);
 		}
 
 		qpre = ove_tmp.qs; qsuf = ove_tmp.ql - ove_tmp.qe;
@@ -702,7 +661,6 @@ static int get_overlap_info(step_query_t *data, thread_buf_t *buf, uint32_t q_id
 			}
 			printf("[%s] will not use these code, something wrong with it...",__func__);
 		}
-		// cp_ove(&buf->ove_cl[q_idx].ove[buf->ove_cl[q_idx].n], &ove_cl_tmp[i]);
 		buf->ove_cl[q_idx].ove[buf->ove_cl[q_idx].n] = ove_cl_tmp[i];
 		buf->ove_cl[q_idx].ove[buf->ove_cl[q_idx].n++].tid = data->p->read_stat->iter_idx[ove_cl_tmp[i].tid];
 		if (buf->ove_cl[q_idx].n > buf->ove_cl[q_idx].m) printf("[%s]buf[%d]->ove_cl[%d] memory leak..,%d > %d\n",__func__,pid,q_idx,buf->ove_cl[q_idx].n,buf->ove_cl[q_idx].m);
@@ -759,7 +717,6 @@ static void *mapping_pipeline(void *shared, int step, void *in)
 	if (step == 0)
 	{
 		step_query_t *s = (step_query_t *)calloc(1, sizeof(step_query_t));
-		// fprintf(stderr, "[%s step0: %.3fs, %.3fGB] start loading query read...\n", __func__, realtime() - realtime0, peak_memory() / 1024.0 / 1024.0);
 		s->read_info = bseq_read_map(p->fp, p->query_batch_size, &s->n_seq, &p->map_n_sta, &p->map_idx_n_sta, p->read_stat->iter_map, &p->file_idx);
 		if (s->n_seq)
 		{
@@ -828,9 +785,7 @@ static void *mapping_pipeline(void *shared, int step, void *in)
 						p->ove_cl[id].m = p->ove_cl[id].m << 1;
 						p->ove_cl[id].ove = (OVE_t *)realloc(p->ove_cl[id].ove, p->ove_cl[id].m * sizeof(OVE_t));
 					}
-					// cp_ove(&p->ove_cl[id].ove[p->ove_cl[id].n++], &s->buf[i]->ove_cl[j].ove[k]);
 					p->ove_cl[id].ove[p->ove_cl[id].n++] = s->buf[i]->ove_cl[j].ove[k];
-					if (p->ove_cl[id].n > p->ove_cl[id].m) printf("[%s]p->ove_cl[%d] memory leak..,%d > %d\n",__func__,id,p->ove_cl[id].n,p->ove_cl[id].m);
 				}
 				if (p->ove_cl[id].n - p->symm[id] > p->top_n)
 				{
@@ -872,7 +827,6 @@ static void *mapping_pipeline(void *shared, int step, void *in)
 
 
 static void estimate_coverage_of_seed_blocks(void *data, int64_t i, int pid)
-// static void estimate_coverage_of_seed_blocks(void *data, int64_t i, uint8_t *visited_rid)
 {
 	pipeline_t *p = (pipeline_t *)data;
 	uint32_t j, k, oi;
@@ -888,7 +842,6 @@ static void estimate_coverage_of_seed_blocks(void *data, int64_t i, int pid)
 	if (p->read_stat->is_idx[i] == 1)
 	{
 		seed_rid = i;
-		// printf("seed read %d\n", seed_rid);
 		for(j = 0; j < p->symm[seed_rid]; ++j)
 		{
 			read_rid = p->ove_cl[seed_rid].ove[j].tid;
@@ -931,9 +884,6 @@ static void estimate_coverage_of_seed_blocks(void *data, int64_t i, int pid)
 
 			if (p->read_stat->is_idx[read_rid] == 1) // processing seed reads, transitive one round
 			{
-				// printf("seed read2 %d, %d\n", read_rid, ql);
-				// printf("%d %d\n", q_sta_pos, q_end_pos);
-				// printf("%d %d\n", cov_q_sta, cov_q_end);
 				for(oi = 0; oi < p->symm[read_rid]; ++oi)
 				{
 					trans_rid = p->ove_cl[read_rid].ove[oi].tid;
@@ -967,12 +917,8 @@ static void estimate_coverage_of_seed_blocks(void *data, int64_t i, int pid)
 						q_end_pos = qe + ts - t_q_sta_pos;
 					}
 					if (q_sta_pos > ql || q_end_pos < 0)	continue;
-					// printf("1 %d %d\n", t_q_sta_pos, t_q_end_pos);
-					// printf("2 %d %d\n", q_sta_pos, q_end_pos);
 					q_sta_pos = q_sta_pos < 0 ? 0 : q_sta_pos;
 					q_end_pos = q_end_pos > ql ? ql : q_end_pos;
-					// printf("3 %d %d\n", q_sta_pos, q_end_pos);
-
 					if (q_sta_pos / p->split_len == p->blkn[seed_rid] - 1)
 						cov_q_sta = p->blkn[seed_rid] - 1;
 					else
@@ -993,14 +939,11 @@ static void estimate_coverage_of_seed_blocks(void *data, int64_t i, int pid)
 			}
 		}
 		sum_cov = 0;
-		// printf("seed read %d\t", seed_rid);
 		for(k = 0; k < p->blkn[seed_rid]; ++k)
 		{
 			sum_cov += p->read_cov[seed_rid].cov[k];
-			// printf("%d\t",p->read_cov[seed_rid].cov[k]);
 		}
 		p->ave_cov[seed_rid] = sum_cov / (double)p->blkn[seed_rid];
-		// printf("ave %.3f\n", p->ave_cov[seed_rid]);
 	}
 }
 
@@ -1008,7 +951,6 @@ static void estimate_coverage_of_read_blocks(void *data, int64_t i, int pid)
 {
 	pipeline_t *p = (pipeline_t *)data;
 	uint32_t seed_rid, sum_cov;
-	// uint32_t last_size;
 	double ave;
 	int32_t cov_t_sta, cov_t_end, cov_t_sta_pos, cov_t_end_pos;
 	int32_t k, cov_q_sta, cov_q_end, cov_q_sta_pos, cov_q_end_pos;
@@ -1049,10 +991,6 @@ static void estimate_coverage_of_read_blocks(void *data, int64_t i, int pid)
 				cov_q_end_pos = qe + ts < ql ? qe + ts : ql;
 			}
 
-			// cov_t_sta_pos = rev == 0 ? ts - qs : te - qs;
-			// cov_t_end_pos = rev == 0 ? te + (ql - qe) : ts + (ql - qe);
-			// cov_t_sta_pos = cov_t_sta_pos < 0 ? 0 : cov_t_sta_pos;
-			// cov_t_end_pos = cov_t_end_pos > tl ? tl : cov_t_end_pos;
 			cov_t_sta = cov_t_sta_pos / p->split_len;
 			cov_t_end = cov_t_end_pos / p->split_len;
 			sum_cov = 0;
@@ -1062,12 +1000,6 @@ static void estimate_coverage_of_read_blocks(void *data, int64_t i, int pid)
 			}
 			ave = sum_cov / (double)(cov_t_end - cov_t_sta + 1);
 
-			// cov_q_sta_pos = rev == 0 ? qs - ts : qs - (p->read_stat->rlen[seed_rid] - ts);
-			// cov_q_end_pos = rev == 0 ? qe + (p->read_stat->rlen[seed_rid] - te) : qe + te;
-			// cov_q_sta_pos = cov_q_sta_pos < 0 ? 0 : cov_q_sta_pos;
-			// cov_q_end_pos = cov_q_end_pos > ql ? ql : cov_q_end_pos;
-			// cov_q_sta = cov_q_sta_pos / p->split_len;
-			// cov_q_end = cov_q_end_pos / p->split_len;
 			if (cov_q_sta_pos / p->split_len == p->blkn[i] - 1)
 				cov_q_sta = p->blkn[i] - 1;
 			else
@@ -1085,20 +1017,16 @@ static void estimate_coverage_of_read_blocks(void *data, int64_t i, int pid)
 			}
 		}
 		sum_cov = 0;
-		// printf("map read %ld\t", i);
 		for (k = 0; k < p->blkn[i]; ++k)
 		{
 			if (cov_n[k] == 0)
 			{
-				// printf("%d\t", p->read_cov[i].cov[k]);
 				continue;
 			}
 			p->read_cov[i].cov[k] = tmp_cov[k] / cov_n[k];
 			sum_cov += p->read_cov[i].cov[k];
-			// printf("%d\t", p->read_cov[i].cov[k]);
 		}
 		p->ave_cov[i] = sum_cov / (double)p->blkn[i];
-		// printf("ave %.3f\n", p->ave_cov[i]);
 	}
 	if (cov_n != NULL) {free(cov_n); cov_n = NULL;}
 	if (tmp_cov != NULL) {free(tmp_cov); tmp_cov = NULL;}
@@ -1121,7 +1049,6 @@ static int choose_idx_read_for_next_iteration(pipeline_t *pl, read_cov_t *read_c
 	for (r_i = 0; r_i < pl->n_total_read; r_i++)
 	{
 		srand(r_i * (pl->iter + 1));
-		// printf("new read %d, %d block\n", r_i, pl->blkn[r_i]);
 		ret = 0;
 		buf_pos = 0;
 		buf_cov = 0;
@@ -1134,7 +1061,6 @@ static int choose_idx_read_for_next_iteration(pipeline_t *pl, read_cov_t *read_c
 			{
 				buf_cov -= ele;
 				buf_ave_cov = (double)buf_cov / buf_size;
-				// printf("%d %f\n", k, buf_ave_cov);
 				if (buf_ave_cov <= cov_tr)	{ret = 1; break;}
 			}
 			if (buf_pos == buf_size) buf_pos = 0;
@@ -1142,7 +1068,6 @@ static int choose_idx_read_for_next_iteration(pipeline_t *pl, read_cov_t *read_c
 		if (pl->blkn[r_i] <= buf_size)
 		{
 			buf_ave_cov = buf_cov / pl->blkn[r_i];
-			// printf("%d %f\n", pl->blkn[r_i], buf_ave_cov);
 			if (buf_ave_cov <= cov_tr)	ret = 1;
 		}
 		if (ret == 1)
@@ -1324,108 +1249,6 @@ static int generate_transitive_edges_of_graph(void *data, int64_t i, FILE *fp_tr
 	return 0;
 }
 
-#ifdef LOAD_INTER_RESULT
-uint32_t load_inter_result_info(const char *temp_batch_dir, pipeline_t *pl, uint32_t *batch_iter)
-{
-	uint32_t i;
-	FILE *fp = NULL;
-	fp = fopen(temp_batch_dir, "r");
-
-	if(fscanf(fp, "%d %d %d %d\n", batch_iter,&pl->index_n_sta,&pl->index_idx_n_sta,&pl->index_idx_n_end) == 4)
-	{
-		fprintf(stderr,"%d %d %d %d\n",(*batch_iter),pl->index_n_sta,pl->index_idx_n_sta,pl->index_idx_n_end);
-	}
-	else exit(1);
-
-	if (fscanf(fp, "%d\n", &pl->read_stat->iter_idx_n) == 1)
-	{
-		fprintf(stderr,"%d\n",pl->read_stat->iter_idx_n);
-		for (i = 0; i < pl->read_stat->iter_idx_n; i++)
-		{
-			if (fscanf(fp, "%d ", &pl->read_stat->iter_idx[i]) == 1)
-			{
-				// fprintf(stderr,"%d\n",pl->read_stat->iter_idx[i]);
-			}
-			else exit(1);
-		}
-	}
-	else exit(1);
-
-	if (fscanf(fp, "%d\n", &pl->n_total_read) == 1)
-	{
-		fprintf(stderr,"%d\n",pl->n_total_read);
-		for (i = 0; i < pl->n_total_read; i++)
-		{
-			if (fscanf(fp, "%d ", &pl->read_stat->is_idx[i]) == 1)
-			{
-				// fprintf(stderr,"%d\n",pl->read_stat->iter_idx[i]);
-			}
-			else exit(1);
-		}
-	}
-	else exit(1);
-
-	if (fscanf(fp, "%d\n", &pl->read_stat->iter_map_n) == 1)
-	{
-		fprintf(stderr,"%d\n",pl->read_stat->iter_map_n);
-		for (i = 0; i < pl->read_stat->iter_map_n; i++)
-		{
-			if (fscanf(fp, "%d ", &pl->read_stat->iter_map[i]) == 1)
-			{
-				// fprintf(stderr,"%d\n",pl->read_stat->iter_map[i]);
-			}
-			else exit(1);
-		}
-	}
-	else exit(1);
-
-	if (fscanf(fp, "%d\n", &pl->n_total_read) == 1)
-	{
-		fprintf(stderr,"%d\n",pl->n_total_read);
-		for (i = 0; i < pl->n_total_read; i++)
-		{
-			if (fscanf(fp, "%d ", &pl->read_stat->is_ove[i]) == 1)
-			{
-				// fprintf(stderr,"%d\n",pl->read_stat->iter_idx[i]);
-			}
-			else exit(1);
-		}
-	}
-	else exit(1);
-
-	if (fscanf(fp, "%ld %ld\n", &pl->file_idx.n, &pl->file_idx.m) == 2)
-	{
-		fprintf(stderr, "%ld %ld\n", pl->file_idx.n, pl->file_idx.m);
-		for (i = 0; i < pl->file_idx.n; ++i)
-		{
-			if (fscanf(fp, "%d ", &pl->file_idx.offs[i]) == 1)
-			{
-				// fprintf(stderr,"%d\n",pl->file_idx.offs[i]);
-			}
-			else exit(1);
-		}
-	}
-	else exit(1);
-
-	if (fscanf(fp, "%d %d %d %d\n", &pl->file_add_p.last_rid, &pl->file_add_p.upper_v, &pl->file_add_p.add_n, &pl->file_add_p.add_m) == 4)
-	{
-		fprintf(stderr, "%d %d %d %d\n", pl->file_add_p.last_rid, pl->file_add_p.upper_v, pl->file_add_p.add_n, pl->file_add_p.add_m);
-		pl->file_add_p.add_p = (uint32_t*)calloc(pl->file_add_p.add_m, sizeof(uint32_t));
-		for (i = 0; i < pl->file_add_p.add_n; ++i)
-		{
-			if (fscanf(fp, "%d ", &pl->file_add_p.add_p[i]) == 1)
-			{
-				fprintf(stderr,"%d\n",pl->file_add_p.add_p[i]);
-			}
-			else exit(1);
-		}
-	}
-	else exit(1);
-
-	fclose(fp);
-	return 0;
-}
-#endif
 OVE_C_t* load_paf_file(const char *temp_batch_dir, OVE_C_t *ove_cl, uint32_t *read_n)
 {
     paf_file_t *fp;
@@ -1454,7 +1277,6 @@ OVE_C_t* load_paf_file(const char *temp_batch_dir, OVE_C_t *ove_cl, uint32_t *re
 				ove_cl[i].m = 2;
 				ove_cl[i].ove = (OVE_t *)calloc(ove_cl[i].m, sizeof(OVE_t));
 			}
-			printf("read n %d->%d\n",(*read_n),new_read_n);
 			(*read_n) = new_read_n;
 		}
         if (ove_cl[qid].n >= ove_cl[qid].m)
@@ -1462,7 +1284,6 @@ OVE_C_t* load_paf_file(const char *temp_batch_dir, OVE_C_t *ove_cl, uint32_t *re
             ove_cl[qid].m = ove_cl[qid].m == 0 ? 2 : ove_cl[qid].m << 1;
             ove_cl[qid].ove = (OVE_t *)realloc(ove_cl[qid].ove, ove_cl[qid].m * sizeof(OVE_t));
         }
-		// printf("%d %d\n",qid,tid);
         ove_cl[qid].ove[ove_cl[qid].n].qid = r.qid; ove_cl[qid].ove[ove_cl[qid].n].tid = r.tid;
         ove_cl[qid].ove[ove_cl[qid].n].ql = r.ql; ove_cl[qid].ove[ove_cl[qid].n].tl = r.tl;
         ove_cl[qid].ove[ove_cl[qid].n].qs = r.qs; ove_cl[qid].ove[ove_cl[qid].n].qe = r.qe;
@@ -1470,7 +1291,6 @@ OVE_C_t* load_paf_file(const char *temp_batch_dir, OVE_C_t *ove_cl, uint32_t *re
         ove_cl[qid].ove[ove_cl[qid].n].rev = r.rev; ove_cl[qid].ove[ove_cl[qid].n].mbp = r.mb;
 		ove_cl[qid].ove[ove_cl[qid].n].mln = r.ml; ove_cl[qid].ove[ove_cl[qid].n++].score = r.ms;
     }
-    // printf("\n");
 
     paf_close(fp);
     return ove_cl;
@@ -1502,9 +1322,10 @@ uint32_t generate_transitive_overlaps_file_core(const char *temp_file_perfix, pi
 	fprintf(stderr, "[%s] Output transitive overlaps to file %s...\n",  __func__, temp_trans_ove_dir);
 
 	uint32_t *visited_rid = (uint32_t *)calloc(pl->n_total_read, sizeof(uint32_t));
-	// for (r_i = 80000000; r_i < pl->n_total_read; ++r_i)
+
 	for (r_i = 0; r_i < pl->n_total_read; ++r_i)
 		generate_transitive_edges_of_graph(pl, r_i, fp_trans_ove, visited_rid);
+
 	if (visited_rid != NULL) {free(visited_rid); visited_rid = NULL;}
 
 	fprintf(stderr, "[%s] Transitive overlaps generated...\n",  __func__);
@@ -1642,7 +1463,6 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 		}
 		pl.read_stat->iter_map[pl.read_stat->iter_map_n++] = r_i; // mark seed read for the first iteration
 	}
-	// fprintf(stderr, "[%s: %.3fs, %.3fGB] calloc %fGB pl.read_stat memory...\n", __func__, realtime() - realtime0, peak_memory() / 1024.0 / 1024.0, pl.n_total_read * (2 * sizeof(uint32_t) + 2 * sizeof(uint32_t)) / 1024.0 / 1024.0 / 1024.0);
 
 	pl.read_cov = (read_cov_t *)calloc(pl.n_total_read, sizeof(read_cov_t));
 	pl.ave_cov = (double *)calloc(pl.n_total_read, sizeof(double));
@@ -1653,7 +1473,6 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 		pl.blkn[r_i] = pl.read_stat->rlen[r_i] / split_len + 1;
 		pl.read_cov[r_i].cov = (uint16_t *)calloc(pl.blkn[r_i], sizeof(uint16_t));
 	}
-	// fprintf(stderr, "[%s: %.3fs, %.3fGB] calloc %fGB pl.read_cov memory...\n", __func__, realtime() - realtime0, peak_memory() / 1024.0 / 1024.0, pl.n_total_read * (sizeof(read_cov_t) + (pl.x_len / split_len + 1) * sizeof(uint16_t) + sizeof(uint16_t) + sizeof(double)) / 1024.0 / 1024.0 / 1024.0);
 	pl.visited_rid = (uint32_t **)calloc(pl.n_threads, sizeof(uint32_t*));
 	for (r_i = 0; r_i < pl.n_threads; ++r_i)
 	{
@@ -1702,7 +1521,6 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 			pl.index_idx_n_sta = pl.index_idx_n_end;
 			mi = indexing_input_read(fp, &pl.rep_n, &pl.index_n_sta, &pl.index_idx_n_end, pl.read_stat, &pl.file_idx, &pl.file_add_p);
 			if (fp != NULL) bseq_close(fp);
-			// fprintf(stderr, "index idx sta %d, end %d\n",pl.index_idx_n_sta,pl.index_idx_n_end);
 
 			if (mi->mm.mi_n == 0)
 			{
@@ -1872,8 +1690,8 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 
 		fclose(fp_batch);
 		fprintf(stderr, "[To next Iteration: %.3fs, %.3fGB] The intermediate result for batch (%d,%d) output to %s\n", realtime() - realtime0, peak_memory() / 1024.0 / 1024.0, pl.idx_batch, pl.map_batch, temp_batch_dir);
-
 #endif
+
 		for (i = 0; i < pl.n_total_read; i++)
 		{
 			if (pl.ove_cl[i].ove != NULL) {free(pl.ove_cl[i].ove); pl.ove_cl[i].ove = NULL;}

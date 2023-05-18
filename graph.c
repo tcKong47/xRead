@@ -11,13 +11,10 @@
 #include "overlapping.h"
 #include "bit_operation.h"
 
-// #define _DEBUG
-// #define _DDEBUG
+#define _DEBUG
 
 void init_graph(Graph *Dp_graph, uint32_t max_v_num)
 {
-	// Dp_graph = (Graph* )calloc(1,sizeof(Graph));
-	// if(Dp_graph == NULL) fprintf(stderr, "[Wrong] Failed to allocate graph memory!\n");
 	Dp_graph->vnode = (VNode *)calloc(max_v_num, sizeof(VNode));
 	if (Dp_graph->vnode == NULL)
 	{
@@ -29,7 +26,6 @@ void init_graph(Graph *Dp_graph, uint32_t max_v_num)
 void free_graph(Graph *Dp_graph)
 {
 	if (Dp_graph->vnode != NULL) {free(Dp_graph->vnode);Dp_graph->vnode = NULL;}
-	// if (Dp_graph != NULL)	free(Dp_graph);
 }
 
 static void find_longest_path(Graph *graph, uint32_t vi, PATH_t *dist_path, uint32_t vertex_num)
@@ -39,7 +35,6 @@ static void find_longest_path(Graph *graph, uint32_t vi, PATH_t *dist_path, uint
 	float current_dist = 0;
 	int32_t pre_node = -1;
     int weight, dir;
-	// int cur_dir = -1;
 	uint32_t adjvex;
 
     //travel the processer of vertex vi
@@ -54,20 +49,13 @@ static void find_longest_path(Graph *graph, uint32_t vi, PATH_t *dist_path, uint
 		adjvex = arcnode->adjvex;
 		temp = dist_path[adjvex].dist + weight - penalty;
 
-		// if (dist_path[adjvex].dir == -1) //deal with the start node
-		// {
-		// 	dist_path[adjvex].dir = dir;
-		// }
-
 		if (current_dist <= temp && dist_path[adjvex].dir == dir) //only walk to the same direction
         {
             current_dist = temp;
             pre_node = adjvex;
-            // cur_dir = dir;
         }
 	}
 
-	// dist_path[vi].dir = cur_dir; //record the current direction
 	dist_path[vi].dist = current_dist; // change the distance because there are overlaps between mems
 	dist_path[vi].pre_node = pre_node; //the front node
 
@@ -119,14 +107,11 @@ uint32_t create_graph(uint32_t cur_s_s, MR_t *vertex_mr, uint32_t vertex_num, ui
 	int32_t ove_q, ove_tt;
 	uint32_t non_ioslated_point = 0;
 	uint32_t thre_num;
-	// uint32_t vertex_num = buf->v_n;
 	int search_step = (vertex_num < cur_s_s)? vertex_num : cur_s_s, t_id, index_n;
-	// int search_step = vertex_num, t_id, index_n;
 	uint32_t *max_dis = NULL;
 	uint8_t *out_degree = NULL;
-	// MR_t *vertex_mr = buf->vertex_mr;
 
-#ifdef _DDEBUG
+#ifdef _DEBUG
 	int vi = 0;
 	printf("qid\thid\tcov\tqstrand\tqs\tqe\ttid\ttstrand\tts\tte\tlen\n");
 	for (vi = 0; vi < vertex_num; ++vi)
@@ -177,11 +162,8 @@ uint32_t create_graph(uint32_t cur_s_s, MR_t *vertex_mr, uint32_t vertex_num, ui
 
 			ove_q = vertex_mr[j].qs - vertex_mr[i].qe - 1;
 			ove_tt = vertex_mr[j].tstr == vertex_mr[j].qstr ? (int32_t)(vertex_mr[j].ts - vertex_mr[i].te - 1) : (int32_t)(vertex_mr[i].ts - vertex_mr[j].te - 1);
-
 			gap = (int32_t)abs(ove_q - ove_tt);
-			// printf("%d->%d, %d %d %d\n",i,j,ove_q,ove_tt,gap);
 
-			// if (ove_q > -k && ove_tt > -k && gap < fmin(abs(ove_tt), abs(ove_q)))  //5  1/error rate
 			if (ove_q > -k && ove_tt > -k && (gap <= abs(ove_q)*0.3 || gap < k))
             {
             	graph->vnode[j].preedge[graph->vnode[j].anode_num].adjvex = i;
@@ -193,18 +175,12 @@ uint32_t create_graph(uint32_t cur_s_s, MR_t *vertex_mr, uint32_t vertex_num, ui
 
 				edge_num++;
         		non_ioslated_point++;
-				// printf("%d->%d, weight %d, penalty %.3f\n",i,j,weight,graph->vnode[j].preedge[graph->vnode[j].anode_num-1].penalty);
             }
-			if (j >= vertex_num) printf("[%s] 1 use unlegal memory, %d-%d, something wrong with it...", __func__, j, vertex_num);
-			if (graph->vnode[j].anode_num > search_step) printf("[%s] use unlegal memory, %d-%d, something wrong with it...", __func__, graph->vnode[j].anode_num, search_step);
-			if (edge_num > 5)	break;
+			if (edge_num > 10)	break;
 		}
 	}
 
-	// if (non_ioslated_point != 0)
-	{
-		sparse_dynamic_programming(graph, vertex_num, vertex_mr, dist_path, out_degree);
-	}
+	sparse_dynamic_programming(graph, vertex_num, vertex_mr, dist_path, out_degree);
 
 	index_n = 0;
 	t_id = vertex_mr[0].t_id;
@@ -222,18 +198,7 @@ uint32_t create_graph(uint32_t cur_s_s, MR_t *vertex_mr, uint32_t vertex_num, ui
 			max_index[index_n] = i;
 		}
 	}
-
-	if (dist_path[max_index[index_n]].pre_node != -1 || max_dis[index_n] > k) //deal with the last node
-		index_n++;
-
-	if (index_n > vertex_num) printf("[%s] 2 use unlegal memory, %d-%d, something wrong with it...", __func__, index_n, vertex_num);
-
-#ifdef _DEBUG
-	for (i = 0; i < index_n; i++)
-	{
-		printf("%d %d %d\n", vertex_mr[i].t_id, max_index[i], max_dis[i]);
-	}
-#endif
+	if (dist_path[max_index[index_n]].pre_node != -1 || max_dis[index_n] > k) index_n++; //deal with the last node
 
 	for (i = 0; i < vertex_num; ++i)
 	{

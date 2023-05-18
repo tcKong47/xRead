@@ -217,7 +217,6 @@ static void *index_pipeline(void *shared, int step, void *in)
 					}
 				}
 				p->mi->mm.mi_v[p->mi->mm.mi_n++] = seq_mi[j];
-				if (p->mi->mm.mi_n > p->mi->mm.mi_m) printf("[%s]seq_mi memory leak..,%ld > %ld\n",__func__,p->mi->mm.mi_n,p->mi->mm.mi_m);
 				key = (seq_mi[j].x >> (k - l) * 2) & p->mi->mi_mask;
 				p->mi_num[key]++;
 			}
@@ -280,8 +279,6 @@ mini_idx_t *indexing_input_read(bseq_file_t *fp, uint32_t *rep_n, uint32_t *n_st
 
 	if (pl.n_sta_idx < read_stat->iter_idx_n)
 	{
-		// fprintf(stderr, "[%s: %.3fs, %.3fGB]last_rid %d, n_sta_idx %d, upper %d(%d) \n",__func__,realtime() - realtime0, peak_memory() / 1024.0 / 1024.0,pl.file_add_p->last_rid,pl.iter_idx[pl.n_sta_idx], pl.file_add_p->upper_v, UINT32_MAX);
-		// fprintf(stderr, "[%s: %.3fs, %.3fGB]add_n %d, add_m %d, add_p[0] %d\n",__func__,realtime() - realtime0, peak_memory() / 1024.0 / 1024.0,pl.file_add_p->add_n,pl.file_add_p->add_m,pl.file_add_p->add_p[pl.file_add_p->add_n-1]);
 		uint32_t k;
 		for (k = pl.file_add_p->last_rid; k < pl.iter_idx[pl.n_sta_idx]; ++k)
 		{
@@ -306,7 +303,6 @@ mini_idx_t *indexing_input_read(bseq_file_t *fp, uint32_t *rep_n, uint32_t *n_st
 		pl.n_sta = pl.iter_idx[pl.n_sta_idx];
 		for (k = 0; k < pl.file_add_p->add_n; ++k)
 		{
-			// fprintf(stderr, "[%s: %.3fs, %.3fGB]add_n %d, add_m %d, add_p[%d] %d\n",__func__,realtime() - realtime0, peak_memory() / 1024.0 / 1024.0,pl.file_add_p->add_n,pl.file_add_p->add_m,k,pl.file_add_p->add_p[k]);
 			bseq_seek_cur(pl.fp, pl.file_add_p->add_p[k]);
 		}
 	}

@@ -5,8 +5,6 @@
 
 #include "bit_operation.h"
 #include "overlapping.h"
-// #include "assemblygraph.h"
-// #include "linking.h"
 
 uint8_t seq_nt4_table[256] = {
 	0, 1, 2, 3,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4, 
@@ -143,27 +141,7 @@ int compare_ove_score(const void *a, const void *b)
 		return -1;
 	else
 		return 0;
-
-	// if ((double)h1->mbp/h1->mln < (double)h2->mbp/h2->mln)
-	// 	return 1;
-	// if ((double)h1->mbp/h1->mln > (double)h2->mbp/h2->mln)
-	// 	return -1;
-	// else
-	// 	return 0;
 }
-
-// int compare_ave_cov(const void *a, const void *b)
-// {
-// 	read_cov_t *h1 = (read_cov_t *)a;
-// 	read_cov_t *h2 = (read_cov_t *)b;
-
-// 	if (h1->ave_cov > h2->ave_cov)
-// 		return 1;
-// 	if (h1->ave_cov < h2->ave_cov)
-// 		return -1;
-// 	else
-// 		return 0;
-// }
 
 int compare_uint32_t(const void *a, const void *b)
 {
