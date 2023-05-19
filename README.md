@@ -130,7 +130,7 @@ For ONT and PacBio CLR data:
 -w/--window-size  5
 -p/--read-type    1
 ```
-For PacBio CCS (HiFi) and ONT data of super high accuracy mode:
+For PacBio CCS (HiFi) data and ONT data of super high accuracy mode:
 ```
 -k/--k-mer       19
 -w/--window-size 40
