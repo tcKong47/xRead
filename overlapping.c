@@ -1,3 +1,9 @@
+/*************************************************************************
+	> File Name: overlapping.c
+	> Author: Tangchao Kong
+	> Mail: 
+ ************************************************************************/
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>

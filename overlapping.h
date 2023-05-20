@@ -1,3 +1,9 @@
+/*************************************************************************
+	> File Name: overlapping.h
+	> Author: Tangchao Kong
+	> Mail: 
+ ************************************************************************/
+
 #ifndef OVERLAPPING_H
 #define OVERLAPPING_H
 
