@@ -1,4 +1,4 @@
-# xRead: an incremental overlapping graph construction approach
+# xRead: a coverage-guided approach for scalable construction of read overlapping graph
 [![License](https://img.shields.io/badge/License-MIT-black.svg)](https://github.com/yangao07/abPOA/blob/master/LICENSE)
 
 ## Table of Contents
