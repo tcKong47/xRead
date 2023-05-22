@@ -29,8 +29,8 @@ uint32_t sketching_core(READ_t *seq, int ridx, MINIMIZER_t *seq_mi, int w, int k
     MINIMIZER_t temp_mi = {UINT64_MAX, UINT64_MAX}, min_mi = {UINT64_MAX, UINT64_MAX};
     MINIMIZER_t *buf = NULL;
 
-    shift = 2 * (k - 1);        // 2 * 14
-    mask = (1ULL << 2 * k) - 1; // (111...111) 30
+    shift = 2 * (k - 1);
+    mask = (1ULL << 2 * k) - 1;
     buf = (MINIMIZER_t *)calloc(w, sizeof(MINIMIZER_t));
 	if (buf == NULL)
 	{
@@ -123,7 +123,7 @@ static uint32_t filter_rep_mi(mini_idx_t *mi)
 			mi_x_tmp = mi->mm.mi_v[i].x;
 		}
 	}
-	rep_kmer[rep_n++] = rep_tmp; // last one
+	rep_kmer[rep_n++] = rep_tmp;
 
 	assert(rep_n > 0);
 	qsort(rep_kmer, rep_n, sizeof(uint32_t), compare_rep);
@@ -243,7 +243,7 @@ mini_idx_t *indexing_input_read(bseq_file_t *fp, uint32_t *rep_n, uint32_t *n_st
 	int i;
 	pipeline_t pl;
 
-	pl.batch_size_base = batch_size_base; // 1Gbp, 5GB memory
+	pl.batch_size_base = batch_size_base;
 	pl.index_batch_size = pl.batch_size_base / 2;
 
 	pl.fp = fp;
@@ -260,8 +260,8 @@ mini_idx_t *indexing_input_read(bseq_file_t *fp, uint32_t *rep_n, uint32_t *n_st
 	pl.mi->k = k;
 	pl.mi->l = l;
 	pl.mi->w = w;
-	pl.mi->bucket_num = 1 << (pl.mi->l << 1);	   // bucket num
-	pl.mi->mi_mask = (1ULL << 2 * pl.mi->l) - 1; // (111...111) 20
+	pl.mi->bucket_num = 1 << (pl.mi->l << 1);
+	pl.mi->mi_mask = (1ULL << 2 * pl.mi->l) - 1;
 	pl.mi->mm.mi_n = 0;
 	pl.mi->mm.mi_m = pl.mi->bucket_num;
 	pl.mi->mm.mi_v = (MINIMIZER_t *)calloc(pl.mi->mm.mi_m, sizeof(MINIMIZER_t));

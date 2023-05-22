@@ -15,18 +15,18 @@
 typedef struct
 {
 	float x_read; //x% longest reads
+	float X_read; //X% longest reads
 	int k; //k-mer length
 	int w; //window size
 	int l; //l-mer length
-	float r_n; //repeat n threshood
-	int s_s;
 	int m_b; //matching bases
-	int min_ove;
-    int max_hang;
-	int top_n; // keep top n overlaps
+	int min_ove; // minimal length of overlaps
+    int max_hang; // maximal allowed length of overhangs
+	int top_n; // retain top n overlaps for each iteration
+	float r_n;
+	int s_s;
 	float cov_ratio;
 	int part_size;
-	int X_read; //x% longest reads
 	int split_len;
 	int iter;
 	int trans_iter;
@@ -89,7 +89,7 @@ extern int top_n;
 
 extern float cov_ratio;
 extern int part_size;
-extern int X_read;
+extern float X_read;
 extern int split_len;
 extern int iter;
 extern int trans_iter;

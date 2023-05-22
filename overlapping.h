@@ -65,19 +65,13 @@ typedef struct
 typedef struct
 {
 	uint32_t n, m;
-	// uint32_t nn; //num of overlapping in collection; simple implematation of symm ove_cl for seed read
-	OVE_t *ove; //point to a overlapping collection
+	OVE_t *ove;
 }OVE_C_t;
 
 typedef struct
 {
-	// mini_t *seq_mi;
 	MR_t *vertex_mr;
 	uint32_t v_n, v_m;
-	// uint32_t max_index_n;
-	// PATH_t *path;
-	// uint32_t *max_index;
-	// Graph Dp_graph;
 	uint32_t max_v_num;
 	OVE_C_t *ove_cl;
 	uint32_t *is_ove;
@@ -93,30 +87,17 @@ typedef struct
 
 typedef struct
 {
-    size_t n, m;
-    cov_data_t *a;
-} rStack;
-
-typedef struct
-{
-	// uint32_t rid;
 	uint16_t *cov;
-	// uint32_t n;
-	// double ave_cov;
 } read_cov_t;
 
 typedef struct
 {
-	uint32_t max_len;
 	uint32_t *rlen;
-	uint32_t *is_idx;  // 0:indexed read, 1:not indexed read
-	uint32_t *not_idx; // 0:read can be indexed, 1:read cannot be indexed
+	uint32_t *is_idx;
 	uint32_t *iter_idx;
 	uint32_t iter_idx_n;
 	uint32_t *iter_map;
 	uint32_t iter_map_n;
-	uint32_t *iter_idx2;
-	uint32_t *iter_map2;
 	uint32_t *is_ove;
 }read_stat_t;
 

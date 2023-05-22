@@ -17,7 +17,7 @@
 #include "overlapping.h"
 #include "bit_operation.h"
 
-#define _DEBUG
+// #define _DEBUG
 
 void init_graph(Graph *Dp_graph, uint32_t max_v_num)
 {
@@ -62,10 +62,9 @@ static void find_longest_path(Graph *graph, uint32_t vi, PATH_t *dist_path, uint
         }
 	}
 
-	dist_path[vi].dist = current_dist; // change the distance because there are overlaps between mems
-	dist_path[vi].pre_node = pre_node; //the front node
+	dist_path[vi].dist = current_dist;
+	dist_path[vi].pre_node = pre_node;
 
-	if (vi >= vertex_num) printf("[%s] use unlegal memory, %d-%d, something wrong with it...", __func__, vi, vertex_num);
 	return;
 }
 

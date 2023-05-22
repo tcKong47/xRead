@@ -261,7 +261,7 @@ static uint32_t finding_hits(void *shared_data, int64_t qidx, uint32_t pid, mini
 		if (result != -1)
 		{
 			hits_num = range[1] - range[0] + 1;
-			if (hits_num > 0 && hits_num <= p->rep_n) //meeting repeat region, drop these hits
+			if (hits_num > 0 && hits_num <= p->rep_n)
 			{
 				for (ii = range[0]; ii <= range[1]; ++ii)
 				{
@@ -294,16 +294,15 @@ static uint32_t finding_hits(void *shared_data, int64_t qidx, uint32_t pid, mini
 			}
 		}
 	}
-	
 	data->buf[pid]->v_n = v_n;
 	if (v_n == 0)	return v_n;
 
 	// merge co-linear match region in the same target read
 	qsort(data->buf[pid]->vertex_mr, v_n, sizeof(MR_t), compare_tid);
-
 	su_i = merge_colinear_mr(data->buf[pid]->vertex_mr, &v_n);
 	data->buf[pid]->v_n = su_i;
 
+	// filtering out low-quality match blocks
 	uint32_t count = 1, su_ii = 0;
 	cov_tmp = data->buf[pid]->vertex_mr[0].cov;
 	tid_tmp = data->buf[pid]->vertex_mr[0].t_id;
@@ -334,8 +333,6 @@ static uint32_t finding_hits(void *shared_data, int64_t qidx, uint32_t pid, mini
 			count++;
 		}
 	}
-
-	// the last one
 	if (!(count == 1 && cov_tmp <= k))
 	{
 		for (k_i = count; k_i > 0; k_i--)
@@ -345,7 +342,7 @@ static uint32_t finding_hits(void *shared_data, int64_t qidx, uint32_t pid, mini
 	}
 	data->buf[pid]->v_n = su_ii;
 
-	// detect repetitive regions
+	// detecting repetitive regions, marking conresponding reads
 	tid_tmp = data->buf[pid]->vertex_mr[0].t_id;
 	uint32_t qs_tmp = data->buf[pid]->vertex_mr[0].qs;
 	uint32_t qe_tmp = data->buf[pid]->vertex_mr[0].qe;
@@ -377,7 +374,6 @@ static uint32_t finding_hits(void *shared_data, int64_t qidx, uint32_t pid, mini
 			}
 		}
 	}
-	// the last one
 	if ((double)rep_mini_n / rep_mini_m > 0.8) {data->buf[pid]->is_ove[qidx] = 1;}
 
 	return v_n;
@@ -411,13 +407,13 @@ static int get_overlap_info(step_query_t *data, thread_buf_t *buf, uint32_t q_id
 		exit(1);
 	}
 
+	// producing alignment skeletons, filtering low-quality overlaps, and recoring at most top_n highest scored overlaps
 	for (i = 0; i < max_index_n; ++i)
 	{
 		j = (int32_t)max_index[i];
 		matching_bases = 0;
 		idx_n = 0;
 		ove_tmp.score = dist_path[j].dist;
-		// first iter vertex_mr.t_id is the rid of index read; second iter vertex_mr.t_id is the index of index read in array read_stat->iter_idx
 		ove_tmp.tid  = vertex_mr[j].t_id;
 		ove_tmp.qid = query->rid;
 		ove_tmp.ql = query->read_length;
@@ -459,7 +455,6 @@ static int get_overlap_info(step_query_t *data, thread_buf_t *buf, uint32_t q_id
 		if (matching_bases >= data->p->m_b && overhang < overhang_tr && ove_tmp.mln > mln_ratio)
 		{
 			ove_cl_tmp[n_tmp++] = ove_tmp;
-			if (n_tmp > max_index_n) printf("[%s]2 use unlegal memory, %d-%d, something wrong with it...", __func__, n_tmp, max_index_n);
 		}
 		else if (ove_tmp.score > data->p->m_b)
 		{
@@ -472,6 +467,8 @@ static int get_overlap_info(step_query_t *data, thread_buf_t *buf, uint32_t q_id
 			ove_rep[n_rep++] = ove_tmp;
 		}
 	}
+
+	// dealing with the reads with repetitive regions that cannot find enough (> top_n) skeletons
 	int Eindel = 100;
 	if (n_tmp < data->p->top_n && n_rep > n_tmp)
 	{
@@ -585,7 +582,6 @@ static int get_overlap_info(step_query_t *data, thread_buf_t *buf, uint32_t q_id
 					j = (int32_t)max_index2[k];
 					matching_bases = 0;
 					ove_tmp.score = path[j].dist;
-					// first iter vertex_mr.t_id is the rid of index read; second iter vertex_mr.t_id is the index of index read in array read_stat->iter_idx
 					ove_tmp.tid  = path_mr[j].t_id;
 					ove_tmp.qid = query->rid;
 					ove_tmp.ql = query->read_length;
@@ -607,7 +603,6 @@ static int get_overlap_info(step_query_t *data, thread_buf_t *buf, uint32_t q_id
 							ove_tmp.te = path_mr[j].te;
 						matching_bases += path_mr[j].cov;
 						j = (int32_t)path[j].pre_node;
-						if (j >= (int32_t)buf->v_n) printf("[%s] 1 use unlegal memory, %d-%d, something wrong with it...", __func__, j, buf->v_n);
 					}
 
 					qpre = ove_tmp.qs; qsuf = ove_tmp.ql - ove_tmp.qe;
@@ -628,7 +623,6 @@ static int get_overlap_info(step_query_t *data, thread_buf_t *buf, uint32_t q_id
 					if (matching_bases >= data->p->m_b && overhang < overhang_tr && ove_tmp.mln > mln_ratio)
 					{
 						ove_cl_tmp[n_tmp++] = ove_tmp;
-						if (n_tmp > (max_index_n+max_index2_n)) printf("[%s]3 use unlegal memory, %d-%d, something wrong with it...", __func__, n_tmp, (max_index_n+max_index2_n));
 					}
 				}
 
@@ -636,7 +630,6 @@ static int get_overlap_info(step_query_t *data, thread_buf_t *buf, uint32_t q_id
 				if (path != NULL) {free(path);path = NULL;}
 				free_graph(&Dp_graph);
 			}
-
 			if (path_mr != NULL) {free(path_mr); path_mr = NULL;}
 		}
 	}
@@ -665,7 +658,6 @@ static int get_overlap_info(step_query_t *data, thread_buf_t *buf, uint32_t q_id
 				fprintf(stderr, "[%s] calloc %ldGB buf->ove_cl[q_idx].ove memory error!\n", __func__, buf->ove_cl[q_idx].m * sizeof(OVE_t) / 1024 / 1024 / 1024);
 				exit(1);
 			}
-			printf("[%s] will not use these code, something wrong with it...",__func__);
 		}
 		buf->ove_cl[q_idx].ove[buf->ove_cl[q_idx].n] = ove_cl_tmp[i];
 		buf->ove_cl[q_idx].ove[buf->ove_cl[q_idx].n++].tid = data->p->read_stat->iter_idx[ove_cl_tmp[i].tid];
@@ -681,20 +673,21 @@ static int get_overlap_info(step_query_t *data, thread_buf_t *buf, uint32_t q_id
 	return n_tmp;
 }
 
-// the i is the read array's index
+// discovering overlaps between query read i and indexed seed reads
 static void overlapping_core(void *data, int64_t i, int pid)
 {
 	step_query_t *step = (step_query_t *)data;
-	mini_t *seq_mi;
 	uint32_t *max_index, max_index_n;
 	PATH_t *path;
 	Graph Dp_graph;
-	// READ_t *read_info = &step->read_info[i];
+
+	mini_t *seq_mi;
 	seq_mi = (mini_t *)calloc(1, sizeof(mini_t));
 	seq_mi->mi_n = 0;
 	seq_mi->mi_m = step->read_info[i].read_length;
 	seq_mi->mi_v = (MINIMIZER_t *)calloc(seq_mi->mi_m, sizeof(MINIMIZER_t)); // max_len*16 bytes
 
+	// finding minimizer hits between query read i and indexed minimizer table
 	finding_hits(step, i, pid, seq_mi);
 	if (step->buf[pid]->v_n > 0)
 	{
@@ -702,6 +695,8 @@ static void overlapping_core(void *data, int64_t i, int pid)
 		path = (PATH_t *)calloc(step->buf[pid]->v_n, sizeof(PATH_t)); // v_n*12 bytes
 		init_graph(&Dp_graph, step->buf[pid]->v_n);  // v_n*16 bytes
 
+		// creating DAG graph, performing SDP approach to generate alignment skeletons
+		// for each query read in each iteration, only retaining pl.top_n overlaps with highest alignment score
 		max_index_n = create_graph(step->p->search_step, step->buf[pid]->vertex_mr, step->buf[pid]->v_n, max_index, path, &Dp_graph);
 		get_overlap_info(step, step->buf[pid], i, pid, max_index_n, max_index, path, seq_mi);
 
@@ -753,7 +748,6 @@ static void *mapping_pipeline(void *shared, int step, void *in)
 					s->buf[i]->ove_cl[j].m = p->top_n;
 					s->buf[i]->ove_cl[j].ove = (OVE_t *)calloc(s->buf[i]->ove_cl[j].m, sizeof(OVE_t));
 				}
-				// graph.c: vertex_num*(search_step*16 + 4 + 1) bytes
 				s->buf[i]->is_ove = (uint32_t *)calloc(s->ove_alloc, sizeof(uint32_t));
 			} 
 			fprintf(stderr, "[Mapping : %.3fs, %.3fGB] Loaded %d query read...\n", realtime() - realtime0, peak_memory() / 1024.0 / 1024.0, s->n_seq);
@@ -831,7 +825,6 @@ static void *mapping_pipeline(void *shared, int step, void *in)
 	return 0;
 }
 
-
 static void estimate_coverage_of_seed_blocks(void *data, int64_t i, int pid)
 {
 	pipeline_t *p = (pipeline_t *)data;
@@ -875,7 +868,7 @@ static void estimate_coverage_of_seed_blocks(void *data, int64_t i, int pid)
 					cov_q_sta = p->blkn[seed_rid] - 1;
 				else
 					cov_q_sta = q_sta_pos % p->split_len < size_tr ? q_sta_pos / p->split_len : q_sta_pos / p->split_len + 1;
-				if (q_end_pos / p->split_len == p->blkn[seed_rid] - 1) // the last region of seed read < p->split_len bp
+				if (q_end_pos / p->split_len == p->blkn[seed_rid] - 1)
 					cov_q_end = p->blkn[seed_rid] - 1;
 				else if (q_end_pos / p->split_len == 0)
 					cov_q_end = 0;
@@ -887,8 +880,9 @@ static void estimate_coverage_of_seed_blocks(void *data, int64_t i, int pid)
 				}
 				p->visited_rid[pid][read_rid] = i;
 			}
-
-			if (p->read_stat->is_idx[read_rid] == 1) // processing seed reads, transitive one round
+			
+			// processing seed reads, transitive one round
+			if (p->read_stat->is_idx[read_rid] == 1)
 			{
 				for(oi = 0; oi < p->symm[read_rid]; ++oi)
 				{
@@ -1010,7 +1004,7 @@ static void estimate_coverage_of_read_blocks(void *data, int64_t i, int pid)
 				cov_q_sta = p->blkn[i] - 1;
 			else
 				cov_q_sta = cov_q_sta_pos % p->split_len < size_tr ? cov_q_sta_pos / p->split_len : cov_q_sta_pos / p->split_len + 1;
-			if (cov_q_end_pos / p->split_len == p->blkn[i] - 1) // the last region of seed read < p->split_len bp
+			if (cov_q_end_pos / p->split_len == p->blkn[i] - 1)
 				cov_q_end = p->blkn[i] - 1;
 			else if (cov_q_end_pos / p->split_len == 0)
 				cov_q_end = 0;
@@ -1036,7 +1030,6 @@ static void estimate_coverage_of_read_blocks(void *data, int64_t i, int pid)
 	}
 	if (cov_n != NULL) {free(cov_n); cov_n = NULL;}
 	if (tmp_cov != NULL) {free(tmp_cov); tmp_cov = NULL;}
-
 }
 
 static int choose_idx_read_for_next_iteration(pipeline_t *pl, read_cov_t *read_cov, double ave_median)
@@ -1080,7 +1073,7 @@ static int choose_idx_read_for_next_iteration(pipeline_t *pl, read_cov_t *read_c
 		{
 			pl->read_stat->iter_map[pl->read_stat->iter_map_n++] = r_i;
 			tmp = rand() % 100;
-			if (tmp < X_read)
+			if (tmp < (int)X_read)
 			{
 				pl->read_stat->iter_idx[pl->read_stat->iter_idx_n++] = r_i;
 				pl->read_stat->is_idx[r_i] = 1;
@@ -1255,17 +1248,17 @@ static int generate_transitive_edges_of_graph(void *data, int64_t i, FILE *fp_tr
 	return 0;
 }
 
-OVE_C_t* load_paf_file(const char *temp_batch_dir, OVE_C_t *ove_cl, uint32_t *read_n)
+OVE_C_t* load_paf_file(const char *temp_iter_dir, OVE_C_t *ove_cl, uint32_t *read_n)
 {
     paf_file_t *fp;
     paf_rec_t r;
 	uint32_t qid, tid;
 	uint32_t new_read_n, i;
 
-    fp = paf_open(temp_batch_dir);
+    fp = paf_open(temp_iter_dir);
     if (!fp)
     {
-        fprintf(stderr, "[%s] could not open PAF file %s\n", __func__, temp_batch_dir);
+        fprintf(stderr, "[%s] could not open PAF file %s\n", __func__, temp_iter_dir);
         exit(1);
     }
 
@@ -1400,8 +1393,8 @@ uint32_t generate_transitive_overlaps_file(const char *trans_file)
 
 uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, const char *temp_file_perfix)
 {
+	// sorting read length for seed read selection of the first iteration
 	uint32_t i, r_i, o_i;
-	// step 1: sorting reads' length
 	bseq_file_t *bf = NULL;
 	bf = bseq_open(read_fastq);
 	if (bf == NULL)
@@ -1411,6 +1404,7 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 	}
 
 	pipeline_t pl;
+	pl.fp = bf;
 	pl.file_idx.n = 0;
 	pl.file_idx.m = 256;
 	pl.file_idx.offs = (int*)calloc(pl.file_idx.m, sizeof(int));
@@ -1420,7 +1414,6 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 	pl.n_processed = 0;
 	pl.n_total_read = 0;
 	pl.index_batch_size = 1000000;
-	pl.fp = bf;
 	pl.read_stat = (read_stat_t *)calloc(1, sizeof(read_stat_t));
 	pl.read_stat->rlen = NULL;
 	pl.read_stat->is_idx = NULL;
@@ -1428,6 +1421,7 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 	pl.read_stat->iter_idx_n = 0;
 	pl.read_stat->iter_map = NULL;
 	pl.read_stat->iter_map_n = 0;
+	
 	kt_pipeline(thread_n < 2 ? thread_n : 2, sort_read_length_pipeline, &pl, 2);
 
 	pl.x_len = pl.x_len / pl.batch_i;
@@ -1444,7 +1438,7 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 	}
 	fprintf(stderr, "[Indexing: %.3fs, %.3fGB] Sorted %d read length, indexing read > %d, max read length %d\n", realtime() - realtime0, peak_memory() / 1024.0 / 1024.0, pl.n_total_read, pl.x_len, pl.max_len);
 
-	// step 2: iteratively indexing and mapping
+	// iteratively indexing and mapping
 	pl.iter = 0;
 	pl.idx_batch = 0;
 	pl.n_threads = thread_n;
@@ -1456,6 +1450,7 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 	pl.search_step = s_s;
 	pl.split_len = split_len;
 
+	// selecting and marking seed reads and query reads for the first iteration
 	pl.read_stat->is_idx = (uint32_t *)calloc(pl.n_total_read, sizeof(uint32_t));
 	pl.read_stat->iter_idx = (uint32_t *)calloc(pl.n_total_read, sizeof(uint32_t));
 	pl.read_stat->iter_map = (uint32_t *)calloc(pl.n_total_read, sizeof(uint32_t));
@@ -1465,9 +1460,9 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 		if (pl.read_stat->rlen[r_i] >= pl.x_len)
 		{
 			pl.read_stat->is_idx[r_i] = 1;
-			pl.read_stat->iter_idx[pl.read_stat->iter_idx_n++] = r_i; // mark seed read for the first iteration
+			pl.read_stat->iter_idx[pl.read_stat->iter_idx_n++] = r_i;
 		}
-		pl.read_stat->iter_map[pl.read_stat->iter_map_n++] = r_i; // mark seed read for the first iteration
+		pl.read_stat->iter_map[pl.read_stat->iter_map_n++] = r_i;
 	}
 
 	pl.read_cov = (read_cov_t *)calloc(pl.n_total_read, sizeof(read_cov_t));
@@ -1486,22 +1481,21 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 	}
 
 	int is_next = 1;
-	uint32_t extra_ove_num = 0;
-	uint32_t extra_ove_num2 = 0;
 	bseq_file_t *fp = NULL;
+	uint32_t extra_ove_num = 0, extra_ove_num2 = 0;
 	pl.file_add_p.upper_v = INT32_MAX - pl.max_len * 3;
 
 	while(is_next && pl.iter < iter)
 	{
+		is_next = 0;
 		fprintf(stderr, "\n**********************************\n");
 		fprintf(stderr, "The %d-th iteration of overlapping\n", pl.iter);
 		fprintf(stderr, "**********************************\n");
 
-		is_next = 0;
-		pl.file_add_p.last_rid = 0;
 		pl.file_add_p.add_n = 1;
 		pl.file_add_p.add_m = 2;
 		pl.file_add_p.add_p = (uint32_t*)calloc(pl.file_add_p.add_m, sizeof(uint32_t));
+		pl.file_add_p.last_rid = 0;
 		pl.index_n_sta = 0;
 		pl.index_idx_n_sta = 0;
 		pl.index_idx_n_end = 0;
@@ -1521,7 +1515,7 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 
 		for(;;)
 		{
-			// step 2.1: indexing reads in read_stat->iter_idx
+			// indexing seed reads (read ID storing in read_stat->iter_idx)
 			mini_idx_t *mi = NULL;
 			fp = bseq_open(index_fastq);
 			pl.index_idx_n_sta = pl.index_idx_n_end;
@@ -1537,7 +1531,7 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 			}
 			pl.idx_batch++;
 
-			// step 2.2: mapping reads to indexed reads
+			// discovering overlaps between query reads to indexed seed reads
 			bf = bseq_open(read_fastq);
 			pl.mi = mi;
 			pl.fp = bf;
@@ -1556,6 +1550,7 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 			if (mi != NULL) {free(mi); mi = NULL;}
 		}
 
+		// loading the temporary intermediate files that store the overlaps of the previous iteration
 		if (pl.iter > 0)
 		{
 			char temp_iter_dir[1024];
@@ -1579,6 +1574,7 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 			fprintf(stderr, "[Coverage: %.3fs, %.3fGB] the intermediate result loaded from %s\n", realtime() - realtime0, peak_memory() / 1024.0 / 1024.0, temp_iter_dir);
 			load_paf_file(temp_iter_dir, pl.ove_cl, &pl.n_total_read);
 		}
+		// completing overlapping graph, for an overlap (v,w), add an edge (w,v) to the overlapping graph if (w,v) are not exist
 		construct_symmetrical_graph(pl.n_total_read, pl.symm, pl.ove_cl, pl.read_stat);
 
 		for (r_i = 0; r_i < pl.n_total_read; ++r_i)
@@ -1591,6 +1587,7 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 			memset(pl.visited_rid[r_i], 0, pl.n_total_read * sizeof(uint32_t));
 		}
 		
+		// estimates the read coverages based on the overlapping graph refined in current iteration
 		kt_for(thread_n > 8 ? 8 : thread_n, estimate_coverage_of_seed_blocks, &pl, pl.n_total_read);
 		kt_for(thread_n > 8 ? 8 : thread_n, estimate_coverage_of_read_blocks, &pl, pl.n_total_read);
 
@@ -1599,10 +1596,10 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 		fprintf(stderr, "[Coverage: %.3fs, %.3fGB] median coverage of all reads: %f...\n", realtime() - realtime0, peak_memory() / 1024.0 / 1024.0, pl.ave_median);
 		is_next = choose_idx_read_for_next_iteration(&pl, pl.read_cov, pl.ave_median);
 
-		// map reads without overlap to the last indexed reads
 		if (pl.read_stat->iter_idx_n == 0) is_next = 0;
 		if (is_next == 0)
 		{
+			// recording ID of reads with reptitive regions and without overlaps to extra iteration
 			pl.read_stat->iter_map_n = 0;
 			for (r_i = 0; r_i < pl.n_total_read; ++r_i)
 			{
@@ -1620,15 +1617,10 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 			fprintf(stderr, "[To next Iteration: %.3fs, %.3fGB] %d reads are marked as repetitive reads...\n", realtime() - realtime0, peak_memory() / 1024.0 / 1024.0, extra_ove_num2);
 		}
 	
-#ifdef INTER_RESULT
+		// storing the overlapping graph in PAF format to temporary files for each iteration
 		FILE *fp_iter = NULL;
 		char temp_iter_dir[1024];
 		memset(temp_iter_dir, 0, 1024);
-
-		FILE *fp_batch = NULL;
-		char temp_batch_dir[1024];
-		memset(temp_batch_dir, 0, 1024);
-
 		char iter[64] = {0};
 		sprintf(iter, "%d", pl.iter);
 		if (temp_file_perfix == NULL)
@@ -1636,9 +1628,6 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 			strcpy(temp_iter_dir, "./oves_iter_");
 			strcat(temp_iter_dir, iter);
 			strcat(temp_iter_dir, ".paf");
-			strcpy(temp_batch_dir, "./oves_iter_");
-			strcat(temp_batch_dir, iter);
-			strcat(temp_batch_dir, ".info");
 		}
 		else
 		{
@@ -1646,17 +1635,10 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 			strcat(temp_iter_dir, "_oves_iter_");
 			strcat(temp_iter_dir, iter);
 			strcat(temp_iter_dir, ".paf");
-			strcpy(temp_batch_dir, temp_file_perfix);
-			strcat(temp_batch_dir, "_oves_iter_");
-			strcat(temp_batch_dir, iter);
-			strcat(temp_batch_dir, ".info");
 		}
 		fprintf(stderr, "[To next Iteration: %.3fs, %.3fGB] The intermediate result for iteration %d output to %s\n", realtime() - realtime0, peak_memory() / 1024.0 / 1024.0, pl.iter, temp_iter_dir);
-
-
 		fp_iter = fopen(temp_iter_dir, "w");
 		if (fp_iter == NULL) exit(1);
-
 		for (r_i = 0; r_i < pl.n_total_read; ++r_i)
 		{
 			if (pl.ove_cl[r_i].n == 0) continue;
@@ -1667,36 +1649,7 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 				fprintf(fp_iter, "%d\t%d\t60\tAS:i:%d\tRI:i:%d\n", pl.ove_cl[r_i].ove[o_i].mbp, pl.ove_cl[r_i].ove[o_i].mln, (int)pl.ove_cl[r_i].ove[o_i].score, pl.read_stat->is_idx[r_i]);
 			}
 		}
-
 		fclose(fp_iter);
-
-		// printf other batch information
-		fp_batch = fopen(temp_batch_dir, "w");
-		if (fp_batch == NULL) exit(1);
-
-		fprintf(fp_batch,"%d %d %d %d\n",pl.iter,pl.index_n_sta,pl.index_idx_n_sta,pl.index_idx_n_end);
-		fprintf(fp_batch,"%d\n", pl.read_stat->iter_idx_n);
-		for (r_i = 0; r_i < pl.read_stat->iter_idx_n; ++r_i)	fprintf(fp_batch,"%d\t", pl.read_stat->iter_idx[r_i]);
-		fprintf(fp_batch,"\n");
-		fprintf(fp_batch,"%d\n", pl.n_total_read);
-		for (r_i = 0; r_i < pl.n_total_read; ++r_i)	fprintf(fp_batch,"%d\t", pl.read_stat->is_idx[r_i]);
-		fprintf(fp_batch,"\n");
-		fprintf(fp_batch,"%d\n", pl.read_stat->iter_map_n);
-		for (r_i = 0; r_i < pl.read_stat->iter_map_n; ++r_i)	fprintf(fp_batch,"%d\t", pl.read_stat->iter_map[r_i]);
-		fprintf(fp_batch,"\n");
-		fprintf(fp_batch,"%d\n", pl.n_total_read);
-		for (r_i = 0; r_i < pl.n_total_read; ++r_i)	fprintf(fp_batch,"%d\t", pl.read_stat->is_ove[r_i]);
-		fprintf(fp_batch,"\n");
-		fprintf(fp_batch,"%ld %ld\n", pl.file_idx.n, pl.file_idx.m);
-		for (r_i = 0; r_i < pl.file_idx.n; ++r_i)	fprintf(fp_batch,"%d\t", pl.file_idx.offs[r_i]);
-		fprintf(fp_batch,"\n");
-		fprintf(fp_batch,"%d %d %d %d\n", pl.file_add_p.last_rid, pl.file_add_p.upper_v, pl.file_add_p.add_n, pl.file_add_p.add_m);
-		for (r_i = 0; r_i < pl.file_add_p.add_n; ++r_i)	fprintf(fp_batch,"%d\t", pl.file_add_p.add_p[r_i]);
-		fprintf(fp_batch,"\n");
-
-		fclose(fp_batch);
-		fprintf(stderr, "[To next Iteration: %.3fs, %.3fGB] The intermediate result for batch (%d,%d) output to %s\n", realtime() - realtime0, peak_memory() / 1024.0 / 1024.0, pl.idx_batch, pl.map_batch, temp_batch_dir);
-#endif
 
 		for (i = 0; i < pl.n_total_read; i++)
 		{
@@ -1723,16 +1676,17 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 	}
 	pl.symm = (uint32_t *)calloc(pl.n_total_read, sizeof(uint32_t));
 
+	// the extra iteration to deal with the reads with reptitive regions and without overlaps
 	if (extra_ove_num > 0)
 	{
 		fprintf(stderr, "\n**********************************\n");
 		fprintf(stderr, "The extra iteration of overlapping\n");
 		fprintf(stderr, "**********************************\n");
 		pl.search_step = s_s*7.5;
-		pl.file_add_p.last_rid = 0;
 		pl.file_add_p.add_n = 1;
 		pl.file_add_p.add_m = 2;
 		pl.file_add_p.add_p = (uint32_t*)calloc(pl.file_add_p.add_m, sizeof(uint32_t));
+		pl.file_add_p.last_rid = 0;
 		pl.index_n_sta = 0;
 		pl.index_idx_n_sta = 0;
 		pl.index_idx_n_end = 0;
@@ -1747,13 +1701,13 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 
 		for(;;)
 		{
-			// step 2.1: indexing reads in read_stat->iter_idx
+			// indexing seed reads (read ID storing in read_stat->iter_idx)
 			mini_idx_t *mi = NULL;
 			fp = bseq_open(index_fastq);
 			pl.index_idx_n_sta = pl.index_idx_n_end;
 			mi = indexing_input_read(fp, &pl.rep_n, &pl.index_n_sta, &pl.index_idx_n_end, pl.read_stat, &pl.file_idx, &pl.file_add_p);
 			if (fp != NULL) bseq_close(fp);
-			// fprintf(stderr, "index idx sta %d, end %d\n",pl.index_idx_n_sta,pl.index_idx_n_end);
+
 			if (mi->mm.mi_n == 0)
 			{
 				if (mi->mm.mi_v != NULL) {free(mi->mm.mi_v); mi->mm.mi_v = NULL;}
@@ -1763,7 +1717,7 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 			}
 			pl.idx_batch++;
 
-			// step 2.2: mapping reads to indexed reads
+			// discovering overlaps between query reads to indexed seed reads
 			bf = bseq_open(read_fastq);
 			pl.mi = mi;
 			pl.fp = bf;
@@ -1784,6 +1738,7 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 		if (pl.file_add_p.add_p != NULL) {free(pl.file_add_p.add_p); pl.file_add_p.add_p = NULL;}
 	}
 
+	// loading the intermediate results file beforing output the file results
 	if (pl.iter > 0)
 	{
 		char temp_iter_dir[1024];
@@ -1809,34 +1764,16 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 		construct_symmetrical_graph(pl.n_total_read, pl.symm, pl.ove_cl, pl.read_stat);
 	}
 
-	// step 4: output
-	FILE *fp_ove = NULL;
-	char temp_ove_dir[1024];
-	memset(temp_ove_dir, 0, 1024);
-	if (temp_file_perfix != NULL)
-	{
-		strcpy(temp_ove_dir, temp_file_perfix);
-		strcat(temp_ove_dir, "_oves.paf");
-		fp_ove = freopen(temp_ove_dir, "w", stdout);
-		// fp_ove = fopen(temp_ove_dir, "w");
-		if (fp_ove == NULL)
-		{
-			fprintf(stderr, "[%s Wrong] Failed to open file %s!!!\n",  __func__, temp_ove_dir);
-			exit(1);
-		}
-	}
-
-	// gz file
+	// output the final results, including a PAF file (storing the overlapping graph), a fa/fq file (storing reads without overlaps)
+	// output fa/fq file (storing reads without overlaps)
 	char file_type = 0;
 	char *file_suff = NULL;
 	int filename_len = strlen(read_fastq);
 	char gz_type = read_fastq[filename_len-1];
-	// fasta/q file
 	if (gz_type == 'z') file_type = read_fastq[filename_len-4];
 	else file_type = read_fastq[filename_len-1];
 	if (file_type == 'q')	file_suff = "fastq";
 	else file_suff = "fasta";
-
 	FILE *fp_un_ove = NULL;
 	char temp_un_ove_dir[1024];
 	memset(temp_un_ove_dir, 0, 1024);
@@ -1851,8 +1788,6 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 		strcat(temp_un_ove_dir, "_un_oves.");
 		strcat(temp_un_ove_dir, file_suff);
 	}
-
-	// look up through the raw read file
 	fp_un_ove = fopen(temp_un_ove_dir, "w");
 	if (fp_un_ove == NULL)
 	{
@@ -1865,6 +1800,21 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 	if (fp != NULL) bseq_close(fp);
 	fclose(fp_un_ove);
 
+	// output PAF file (storing the overlapping graph)
+	FILE *fp_ove = NULL;
+	char temp_ove_dir[1024];
+	memset(temp_ove_dir, 0, 1024);
+	if (temp_file_perfix != NULL)
+	{
+		strcpy(temp_ove_dir, temp_file_perfix);
+		strcat(temp_ove_dir, "_oves.paf");
+		fp_ove = freopen(temp_ove_dir, "w", stdout);
+		if (fp_ove == NULL)
+		{
+			fprintf(stderr, "[%s Wrong] Failed to open file %s!!!\n",  __func__, temp_ove_dir);
+			exit(1);
+		}
+	}
 	uint32_t total_index_num = 0;
 	for (r_i = 0; r_i < pl.n_total_read; ++r_i)
 	{
@@ -1880,6 +1830,7 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 	if (temp_file_perfix != NULL) fclose(fp_ove);
 	fprintf(stderr, "[Result  : %.3fs, %.3fGB] Total indexed read num: %d...\n", realtime() - realtime0, peak_memory() / 1024.0 / 1024.0, total_index_num);
 
+	// if specified, expanding the overlapping graph to comprehensive graph using transitive operations
 	if (trans_iter > 0)	generate_transitive_overlaps_file_core(temp_file_perfix, &pl);
 
 	if (pl.symm != NULL) {free(pl.symm); pl.symm = NULL;}

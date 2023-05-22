@@ -27,7 +27,7 @@ int max_hang;
 int top_n;
 float cov_ratio;
 int part_size;
-int X_read;
+float X_read;
 int split_len;
 int iter;
 int trans_iter;
@@ -67,8 +67,6 @@ static void init_map_param(param_map *opt)
 	opt->thread_n = 8;
 	opt->memory = 16;
 	opt->batch_size = opt->memory / (19 + 2.0/opt->thread_n) * 1024 *1024 * 1024;
-	// 16 bytes for storing minimizers, 3 bytes for stroing map read bases
-	// 1 bytes for storing other structs
 }
 
 static int help_usage(param_map *opt)
@@ -79,7 +77,7 @@ static int help_usage(param_map *opt)
 	fprintf(stderr, "Usage:		xRead <reads.fasta/fastq> [options]\n");
 	fprintf(stderr, "\nProgram options:   \n");
     fprintf(stderr, "    -h --help                           Print help menu.\n");
-    fprintf(stderr, "    -f --output-file		    [STR]    The path and name prefix of output file, if not set, using the stdout.\n");
+    fprintf(stderr, "    -f --output-file           [STR]    The path and name prefix of output file, if not set, using the stdout.\n");
 	fprintf(stderr, "    -M --memory                [INT]    Maximum allowed memory. [%d]\n", opt->memory);
 	fprintf(stderr, "    -t --thread-n              [INT]    Number of used threads. [%d]\n", opt->thread_n);
 	fprintf(stderr, "    -p --read-type             [INT]    Specifiy the type of reads and set multiple paramters unless overriden. [%d]\n", opt->read_type);
@@ -88,12 +86,12 @@ static int help_usage(param_map *opt)
 
 	fprintf(stderr, "\nAlgorithm options:\n");
 	fprintf(stderr, "    -x --x-longest-read        [FLOAT]  The longest x%% reads indexed for the first iteration. [%f]\n", opt->x_read);
-	fprintf(stderr, "    -X --x-random-read         [FLOAT]  The longest X%% reads indexed for the second and later iteration. [%d]\n", opt->X_read);
+	fprintf(stderr, "    -X --x-random-read         [FLOAT]  The longest X%% reads indexed for the second and later iteration. [%f]\n", opt->X_read);
 	fprintf(stderr, "    -k --k-mer                 [INT]    The length of k-mer for sequences sketching. [%d]\n", opt->k);
 	fprintf(stderr, "    -w --window-size           [INT]    Window size for sequences sketching. [%d]\n", opt->w);
 	fprintf(stderr, "    -l --l-mer                 [INT]    The length of l-mer of the auxiliary index hash table. [%d]\n", opt->l);
 	fprintf(stderr, "    -r --repeat-n              [FLOAT]  The proportion for filtering the most repetitive minimizer hits. [%.3f]\n", opt->r_n);
-	fprintf(stderr, "    -e --search-step           [INT] 	 The number of search step of SDP graph construction. [%d]\n", opt->s_s);
+	fprintf(stderr, "    -e --search-step           [INT]    The number of search step of SDP graph construction. [%d]\n", opt->s_s);
 
 	fprintf(stderr, "    -n --top-n                 [INT]    The number of overlaps each read retained for each iteration. [%d]\n", opt->top_n);
 	fprintf(stderr, "    -b --matching-bases        [INT]    Minimum required matching bases for a single overlap between two reads. [%d]\n", opt->m_b);
@@ -106,7 +104,7 @@ static int help_usage(param_map *opt)
 	fprintf(stderr, "    -I --iter-times            [INT]    Maximum allowed number of iterations. [%d]\n", opt->iter);
 
 	fprintf(stderr, "    -R --trans-iter            [INT]    Enabling the calculating of transitive overlaps for R iterations. [%d]\n", opt->trans_iter);
-	fprintf(stderr, "    -N --trans-file            	     Skipping the overlapping discovery, only perfomred R transitive iterations to generate comprehensive graph.\n");
+	fprintf(stderr, "    -N --trans-file                     Skipping the overlapping discovery, only perfomred R transitive iterations to generate comprehensive graph.\n");
 	
 	fprintf(stderr, "\nProgram:	xRead\n");
 	fprintf(stderr, "Usage:		xRead <overlaps.paf> -N [options]\n");
@@ -178,7 +176,7 @@ int main(int argc, char *argv[])
 
 			case 'c': opt->cov_ratio = atof(optarg);break;
 			case 'S': opt->part_size = atoi(optarg);break;
-			case 'X': opt->X_read = atoi(optarg);break;
+			case 'X': opt->X_read = atof(optarg);break;
 			case 'L': opt->split_len = atoi(optarg);break;
 			case 'I': opt->iter = atoi(optarg);break;
 
@@ -254,17 +252,17 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Input error: -n cannot be less than 1\n");
 		exit(1);
 	}
-	if (opt->cov_ratio < 0.09 || opt->cov_ratio > 0.81)
+	if (opt->cov_ratio < 0.09 || opt->cov_ratio > 0.91)
 	{
-		fprintf(stderr, "Input error: -c cannot be less than 0.1 or more than 0.8\n");
+		fprintf(stderr, "Input error: -c cannot be less than 0.1 or more than 0.9\n");
 		exit(1);
 	}
-	if (opt->part_size < 1 || opt->part_size > 10)
+	if (opt->part_size < 1 || opt->part_size > 100)
 	{
-		fprintf(stderr, "Input error: -S cannot be less than 1 or more than 10\n");
+		fprintf(stderr, "Input error: -S cannot be less than 1 or more than 100\n");
 		exit(1);
 	}
-	if (opt->X_read < 1 || opt->X_read > 100)
+	if (opt->X_read <= 0 || opt->X_read > 100)
 	{
 		fprintf(stderr, "Input error: -X cannot be less than 1 or more than 100\n");
 		exit(1);
@@ -292,11 +290,10 @@ int main(int argc, char *argv[])
 
 	els = 0.05;
 	error = 0.2;
-	if (opt->read_type == 1) //ont 88%
+	if (opt->read_type == 1)
 		error = 0.12;
-	else if (opt->read_type == 2) //ont 99%
+	else if (opt->read_type == 2)
 		error = 0.01;
-
 	t = log10(els)/log10(1 - pow(1 - error, opt->k));
 	q = 1/error - opt->k * pow(1 - error, opt->k)/(1 - pow(1 - error, opt->k));
 	waitingLen = (int)(t * q);

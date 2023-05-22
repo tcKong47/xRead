@@ -10,7 +10,6 @@ int compare_tid(const void *a, const void *b);
 int compare_qs(const void *a, const void *b);
 int compare_ove_len(const void *a, const void *b);
 int compare_ove_score(const void *a, const void *b);
-// int compare_ave_cov(const void *a, const void *b);
 int compare_uint32_t(const void *a, const void *b);
 int compare_double(const void *a, const void *b);
 
