@@ -1,5 +1,5 @@
 # xRead: a coverage-guided approach for scalable construction of read overlapping graph
-[![License](https://img.shields.io/badge/License-MIT-black.svg)](https://github.com/yangao07/abPOA/blob/master/LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-black.svg)](https://github.com/tcKong47/xRead/blob/main/LICENSE)
 
 ## Table of Contents
 1. [Getting started](#getting_stated)
@@ -29,7 +29,7 @@ make
 ```
 
 ## <a name="introduction"></a>Introduction
-Long-read sequencing provides the reads with superior repeat-spanning ability which enables the solution of complex repetitive regions and greatly helps to achieve high-quality assemblies. However, the time cost and the memory requirement of constructing read overlapping graph are still high due to the computation-intensity, especially on many large genomes (such as *A. mexicanum*, *E. superba*). Long-read assembly approaches with higher scalability and speed are in wide demand to deal with the ever-increasing sizes and numbers of de novo sequencing genomes. Herein, we proposed xRead, an incremental overlapping graph construction approach that is able to achieve high scalability, performance and yields simultaneously. Guided by a novel read-coverage-based objective function, xRead iteratively builds and refines the overlapping graph with heuristic read indexing and lightweight alignment skeletons and output the core overlap information in PAF format.
+Long-read sequencing provides the reads with superior repeat-spanning ability which enables the solution of complex repetitive regions and greatly helps to achieve high-quality assemblies. However, the time cost and the memory requirement of constructing read overlapping graph are still high due to the computation-intensity, especially on many large genomes (such as *A. mexicanum*, *E. superba*). Long-read assembly approaches with higher scalability and speed are in wide demand to deal with the ever-increasing sizes and numbers of de novo sequencing genomes. Herein, we proposed xRead, an incremental overlapping graph construction approach that is able to achieve high scalability, performance and yields simultaneously. Guided by a novel read-coverage-based objective function, xRead iteratively builds and refines the overlapping graph with heuristic read indexing and lightweight alignment skeletons and outputs the core overlap information in PAF format.
 
 The benchmarks on simulated and real datasets suggest that xRead is able to well-handle various-sized genomes and long-read datasets with controllable RAM usage and high speed. It is also able to achieve high precision without loss of sensitivity as well, which helps to construct high-quality overlapping graphs. The benchmark results of xRead on various simulated and real sequencing datasets are below:
 
@@ -60,25 +60,27 @@ tar -zxvf xRead-v1.0.0_x64-linux.tar.gz
 
 ## <a name="general_usage"></a>General usage
 ### <a name="input"></a>Input
-xRead works with FASTA, FASTQ, gzip'd FASTA (.fa.gz), and gzip'd FASTQ (.fq.gz) formats. The input file is expected to contains all sequences of a single sample of a specific organism to perform the incremental overlap graph construction.
+xRead works with FASTA, FASTQ, gzip'd FASTA (.fasta.gz), and gzip'd FASTQ (.fastq.gz) formats. The input file is expected to contain all sequences of a single sample of a specific organism to perform the incremental overlap graph construction.
 
-xRead also works with PAF and gzip'd (.paf.gz) formats and provides an additional function to expand the initial core graphs to comprehensive graphs based on the further analysis of transitive relationships among the overlaps. If the option *-N --trans-file* is enabled, xRead skips the overlapping process and takes the PAF file as input to directly performed the expanding iterations, which the number of iterations is defined by option *-R --trans-iter*.
+xRead also works with PAF and gzip'd (.paf.gz) formats and provides an additional function to expand the initial core graphs to comprehensive graphs based on the further analysis of transitive relationships among the overlaps. If the option *-N --trans-file* is enabled, xRead skips the overlapping process and takes the PAF file as input to directly perform the expanding iterations, which the number of iterations is defined by option *-R --trans-iter*.
 
 ### <a name="output"></a>Output
 xRead generates a collection of overlaps between input reads/overlap relationships and outputs them in the PAF format. For more information about PAF format, please refer to PAF: a Pairwise mApping Format (https://github.com/lh3/miniasm/blob/master/PAF.md).
+xRead also outputs fasta/fastq files storing the reads without overlaps for potential use of downstream analysis.
 
 ### <a name="user_cases"></a>User cases
 To construct overlapping graph and output in PAF format.
 ```
-xRead sequence.fa/fq -f output_path/output_filename_prefix
+xRead sequence.fasta/fastq -f output_path/output_filename_prefix
+xRead sequence.fasta/fastq > result_oves.paf
 ```
 
-To construct overlapping graph and expand it to comprehensive overalpping graph via transitive searching of -R iterations.
+To construct overlapping graph and expand it to comprehensive overlapping graph via transitive searching of -R iterations.
 ```
-xRead sequence.fa/fq -f output_path/output_filename_prefix -R 3
+xRead sequence.fasta/fastq -f output_path/output_filename_prefix -R 3
 ```
 
-To expand overlapping graph to comprehensive overalpping graph.
+To expand overlapping graph to comprehensive overlapping graph.
 ```
 xRead overlaps.paf -NR 3
 ```
@@ -89,7 +91,7 @@ xRead overlaps.paf -NR 3
 Usage: xRead <reads.fa/fq>/<overlaps.paf> [options]
 
     <reads.fq/fa>           The input reads in fasta or fastq format, necessary if -N is not enabled by users.
-    <overlaps.paf>          The input overlapping graph in paf format, necessary if -N is enabled to skip the overlapping discovery step.
+    <overlaps.paf>          The input overlapping graph in paf format, necessary if -N is enabled to skip the read overlapping step.
 ```
 
 ***Program options***
@@ -109,7 +111,7 @@ Usage: xRead <reads.fa/fq>/<overlaps.paf> [options]
 | -w | --window-size | Window size for sequences sketching. | 5 |
 | -l | --l-mer | The length of l-mer of the auxiliary index hash table. | 11 |
 | -r | --repeat-n | The proportion for filtering the most repetitive minimizer hits. | 0.005 |
-| -p | --read-type | Specify the type of reads to calculating the length of gaps for alignment skeleton.<br> *1*: For reads with high error rates ~15%.<br> *2*: For reads with low error rates ~1%. | 1 |
+| -p | --read-type | Specify the type of reads to calculate the length of gaps for alignment skeleton.<br> *1*: For reads with high error rates ~13%.<br> *2*: For reads with low error rates ~1%. | 1 |
 | -e | --search-step | The number of search step of SDP graph construction. | 10 |
 | -n | --top-n | The number of overlaps each read retained for each iteration. | 2 |
 | -b | --matching-bases | Minimum required matching bases for a single overlap between two reads. | 100 |
@@ -120,7 +122,7 @@ Usage: xRead <reads.fa/fq>/<overlaps.paf> [options]
 | -c | --cov-ratio | The proportion of less-covered reads for next iteration. | 0.5 |
 | -I | --iter-times | Maximum allowed number of iterations. | 8 |
 | -R | --trans-iter | Enabling the calculating of transitive overlaps for R iterations. | 0 |
-| -N | --trans-only | Skipping the overlapping discovery, only perfomred R transitive iterations to generate comprehensive graph. | NULL |
+| -N | --trans-only | Skipping the overlapping discovery, only performing R transitive iterations to generate comprehensive graph. | NULL |
 
 ***Recommended options***
 
@@ -135,6 +137,10 @@ For PacBio CCS (HiFi) data and ONT data of super high accuracy mode:
 -k/--k-mer       19
 -w/--window-size 40
 -p/--read-type    2
+```
+The default value of the *-x --x-longest-read* option is suitable for datasets with relatively high coverage (e.g. ~50x). For datasets with lower coverage (e.g. ~30x), it is recommended to slightly increase the value of the *-x --x-longest-read* option:
+```
+-x/--x-longest-read 5.0
 ```
 
 ## <a name="contact"></a>Contact
