@@ -1759,9 +1759,20 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 			strcat(temp_iter_dir, iter);
 			strcat(temp_iter_dir, ".paf");
 		}
-		fprintf(stderr, "[Result  : %.3fs, %.3fGB] The intermediate result loaded from %s\n", realtime() - realtime0, peak_memory() / 1024.0 / 1024.0, temp_iter_dir);
+		fprintf(stderr, "\n[Result  : %.3fs, %.3fGB] The intermediate result loaded from %s\n", realtime() - realtime0, peak_memory() / 1024.0 / 1024.0, temp_iter_dir);
 		load_paf_file(temp_iter_dir, pl.ove_cl, &pl.n_total_read);
 		construct_symmetrical_graph(pl.n_total_read, pl.symm, pl.ove_cl, pl.read_stat);
+	}
+	for (i = 0; i < pl.iter; ++i)
+	{
+		char command[1024];
+		memset(command, 0, 1024);
+		if (temp_file_perfix == NULL)
+			sprintf(command, "rm oves_iter_%d.paf", i);
+		else
+			sprintf(command, "rm %s_oves_iter_%d.paf", temp_file_perfix, i);
+		int res = system(command);
+		if (res == -1) fprintf(stderr, "[%s Wrong] Failed to delete intermediate file!!!\n",  __func__);
 	}
 
 	// output the final results, including a PAF file (storing the overlapping graph), a fa/fq file (storing reads without overlaps)

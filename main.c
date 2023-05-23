@@ -80,9 +80,9 @@ static int help_usage(param_map *opt)
     fprintf(stderr, "    -f --output-file           [STR]    The path and name prefix of output file, if not set, using the stdout.\n");
 	fprintf(stderr, "    -M --memory                [INT]    Maximum allowed memory. [%d]\n", opt->memory);
 	fprintf(stderr, "    -t --thread-n              [INT]    Number of used threads. [%d]\n", opt->thread_n);
-	fprintf(stderr, "    -p --read-type             [INT]    Specifiy the type of reads and set multiple paramters unless overriden. [%d]\n", opt->read_type);
-	fprintf(stderr, "                                        	[1]: For eads with error rates ~12%%\n");
-	fprintf(stderr, "                                        	[2]: For reads with error rates ~1%%\n");
+	fprintf(stderr, "    -p --read-type             [INT]    Specify the type of reads to calculate the length of gaps for alignment skeleton. [%d]\n", opt->read_type);
+	fprintf(stderr, "                                        	[1]: For reads with high error rates ~13%%\n");
+	fprintf(stderr, "                                        	[2]: For reads with low error rates ~1%%\n");
 
 	fprintf(stderr, "\nAlgorithm options:\n");
 	fprintf(stderr, "    -x --x-longest-read        [FLOAT]  The longest x%% reads indexed for the first iteration. [%f]\n", opt->x_read);
