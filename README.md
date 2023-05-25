@@ -147,3 +147,4 @@ The default value of the *-x --x-longest-read* option is suitable for datasets w
 Please post on [github issues](https://github.com/tcKong47/xRead/issues) or contact Tangchao Kong 21B903020@stu.hit.edu.cn for questioning, advising, and reporting bugs.
 
 ## <a name="citation"></a>Citation
+Tangchao Kong, Bo Liu, Yadong Wang, xRead: a coverage-guided approach for scalable construction of read overlapping graph. bioRxiv 2023.05.23.541864; doi: https://doi.org/10.1101/2023.05.23.541864
