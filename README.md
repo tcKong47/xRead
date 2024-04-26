@@ -1,5 +1,6 @@
 # xRead: a coverage-guided approach for scalable construction of read overlapping graph
 [![License](https://img.shields.io/badge/License-MIT-black.svg)](https://github.com/tcKong47/xRead/blob/main/LICENSE)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.11069548.svg)](https://doi.org/10.5281/zenodo.11069548)
 
 ## Table of Contents
 1. [Getting started](#getting_stated)
