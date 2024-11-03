@@ -43,7 +43,7 @@ We provide the performance (real-time costs and memory footprints), precision, s
 ### <a name="build_source"></a>Building xRead from source files
 You can build xRead from source files. The source code of xRead is written in C, and has been tested on 64-bit Linux. The source code can be downloaded from the latest release or git clone command. Please make sure you have gcc (>=6.4.0) installed before compiling.
 ```
-wget https://github.com/tcKong47/xRead/releases/download/v1.4.1/xRead-v1.0.0.tar.gz
+wget https://github.com/tcKong47/xRead/releases/download/v1.0.0/xRead-v1.0.0.tar.gz
 tar -zxvf xRead-v1.0.0.tar.gz
 cd xRead-v1.0.0; make
 ```
