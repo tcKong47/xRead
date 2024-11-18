@@ -61,6 +61,7 @@ typedef struct
 	uint32_t split_len;
 	read_cov_t *read_cov;
 	double *ave_cov;
+	double *ave_cov2;
 	uint16_t *blkn;
 	double ave_median;
 	uint32_t **visited_rid;
@@ -1467,10 +1468,11 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 
 	pl.read_cov = (read_cov_t *)calloc(pl.n_total_read, sizeof(read_cov_t));
 	pl.ave_cov = (double *)calloc(pl.n_total_read, sizeof(double));
+	pl.ave_cov2 = (double *)calloc(pl.n_total_read, sizeof(double));
 	pl.blkn = (uint16_t *)calloc(pl.n_total_read, sizeof(uint16_t));
 	for (r_i = 0; r_i < pl.n_total_read; ++r_i)
 	{
-		pl.ave_cov[r_i] = 0.;
+		pl.ave_cov[r_i] = 0.; pl.ave_cov2[r_i] = 0.;
 		pl.blkn[r_i] = pl.read_stat->rlen[r_i] / split_len + 1;
 		pl.read_cov[r_i].cov = (uint16_t *)calloc(pl.blkn[r_i], sizeof(uint16_t));
 	}
@@ -1579,7 +1581,7 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 
 		for (r_i = 0; r_i < pl.n_total_read; ++r_i)
 		{
-			pl.ave_cov[r_i] = 0.;
+			pl.ave_cov[r_i] = 0.; pl.ave_cov2[r_i] = 0.;
 			memset(pl.read_cov[r_i].cov, 0, pl.blkn[r_i] * sizeof(uint16_t));
 		}
 		for (r_i = 0; r_i < pl.n_threads; ++r_i)
@@ -1590,6 +1592,8 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 		// estimates the read coverages based on the overlapping graph refined in current iteration
 		kt_for(thread_n > 8 ? 8 : thread_n, estimate_coverage_of_seed_blocks, &pl, pl.n_total_read);
 		kt_for(thread_n > 8 ? 8 : thread_n, estimate_coverage_of_read_blocks, &pl, pl.n_total_read);
+
+		for (r_i = 0; r_i < pl.n_total_read; ++r_i) pl.ave_cov2[r_i] = pl.ave_cov[r_i];
 
 		qsort(pl.ave_cov, pl.n_total_read, sizeof(double), compare_double);
 		pl.ave_median = pl.ave_cov[(int)(pl.n_total_read*0.5)];
@@ -1735,6 +1739,7 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 			if (mi->mi_count != NULL) {free(mi->mi_count); mi->mi_count = NULL;}
 			if (mi != NULL) {free(mi); mi = NULL;}
 		}
+
 		if (pl.file_add_p.add_p != NULL) {free(pl.file_add_p.add_p); pl.file_add_p.add_p = NULL;}
 	}
 
@@ -1762,6 +1767,23 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 		fprintf(stderr, "\n[Result  : %.3fs, %.3fGB] The intermediate result loaded from %s\n", realtime() - realtime0, peak_memory() / 1024.0 / 1024.0, temp_iter_dir);
 		load_paf_file(temp_iter_dir, pl.ove_cl, &pl.n_total_read);
 		construct_symmetrical_graph(pl.n_total_read, pl.symm, pl.ove_cl, pl.read_stat);
+
+		for (r_i = 0; r_i < pl.n_total_read; ++r_i)
+		{
+			pl.ave_cov[r_i] = 0.; pl.ave_cov2[r_i] = 0.;
+			memset(pl.read_cov[r_i].cov, 0, pl.blkn[r_i] * sizeof(uint16_t));
+		}
+		for (r_i = 0; r_i < pl.n_threads; ++r_i)
+		{
+			memset(pl.visited_rid[r_i], 0, pl.n_total_read * sizeof(uint32_t));
+		}
+		
+		// estimates the read coverages based on the overlapping graph refined in current iteration
+		kt_for(thread_n > 8 ? 8 : thread_n, estimate_coverage_of_seed_blocks, &pl, pl.n_total_read);
+		kt_for(thread_n > 8 ? 8 : thread_n, estimate_coverage_of_read_blocks, &pl, pl.n_total_read);
+
+		for (r_i = 0; r_i < pl.n_total_read; ++r_i) pl.ave_cov2[r_i] = pl.ave_cov[r_i];
+
 	}
 	for (i = 0; i < pl.iter; ++i)
 	{
@@ -1835,7 +1857,7 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 		{
 			printf("%u\t%u\t%u\t%u\t%c\t", pl.ove_cl[r_i].ove[o_i].qid, pl.ove_cl[r_i].ove[o_i].ql, pl.ove_cl[r_i].ove[o_i].qs, pl.ove_cl[r_i].ove[o_i].qe, "+-"[pl.ove_cl[r_i].ove[o_i].rev]);
 			printf("%u\t%u\t%u\t%u\t", pl.ove_cl[r_i].ove[o_i].tid, pl.ove_cl[r_i].ove[o_i].tl, pl.ove_cl[r_i].ove[o_i].ts, pl.ove_cl[r_i].ove[o_i].te);
-			printf("%d\t%d\t60\tAS:i:%d\tRI:i:%d\n", pl.ove_cl[r_i].ove[o_i].mbp, pl.ove_cl[r_i].ove[o_i].mln, (int)pl.ove_cl[r_i].ove[o_i].score, pl.read_stat->is_idx[r_i]);
+			printf("%d\t%d\t60\tAS:i:%d\tRI:i:%d\tCV:f:%.2f\n", pl.ove_cl[r_i].ove[o_i].mbp, pl.ove_cl[r_i].ove[o_i].mln, (int)pl.ove_cl[r_i].ove[o_i].score, pl.read_stat->is_idx[r_i], pl.ave_cov2[r_i]);
 		}
 	}
 	if (temp_file_perfix != NULL) fclose(fp_ove);
@@ -1863,6 +1885,7 @@ uint32_t finding_overlapping(const char *read_fastq, const char *index_fastq, co
 	}
 	if (pl.read_cov != NULL) {free(pl.read_cov); pl.read_cov = NULL;}
 	if (pl.ave_cov != NULL) {free(pl.ave_cov); pl.ave_cov = NULL;}
+	if (pl.ave_cov2 != NULL) {free(pl.ave_cov2); pl.ave_cov2 = NULL;}
 	if (pl.blkn != NULL) {free(pl.blkn); pl.blkn = NULL;}
 
 	if (pl.read_stat->rlen != NULL) {free(pl.read_stat->rlen); pl.read_stat->rlen = NULL;}
